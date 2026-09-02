@@ -1,5 +1,7 @@
 # ScamShield — UPI & Digital Payment Fraud Detection
 
+![ScamShield dashboard](docs/screenshot.png)
+
 A full-stack app that assesses scam/fraud risk across three common attack surfaces in
 Indian digital payments: suspicious **messages** (SMS/WhatsApp phishing), **transaction
 patterns** (behavioural anomalies), and **UPI collect requests** (the "approve to receive
