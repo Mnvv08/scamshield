@@ -126,6 +126,27 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
   above — this is performance against the synthetic labels it was trained to detect, not a
   real-world benchmark).
 
+## Deployment
+
+**Backend (Render, free tier):**
+1. Push this repo to GitHub (done, if you're reading this from there).
+2. On [render.com](https://render.com), click **New → Web Service**, connect this repo.
+3. Root directory: `backend`
+4. Build command: `bash build.sh`
+5. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+6. Deploy. Copy the resulting URL (e.g. `https://scamshield-api.onrender.com`).
+
+**Frontend (Vercel, free tier):**
+1. On [vercel.com](https://vercel.com), click **Add New → Project**, import this repo.
+2. Root directory: `frontend`
+3. Framework preset: Vite (auto-detected)
+4. Add environment variable: `VITE_API_URL` = your Render backend URL from above.
+5. Deploy.
+
+**Then, back on Render**, set an `ALLOWED_ORIGINS` environment variable to your Vercel URL
+(e.g. `https://scamshield.vercel.app`) so the backend only accepts requests from your live
+frontend rather than any origin.
+
 ## Honest limitations
 
 - The transaction model has never seen real transaction data and should not be presented

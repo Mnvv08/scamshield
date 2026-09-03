@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -11,9 +12,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# In production, set ALLOWED_ORIGINS to your frontend's deployed URL
+# (comma-separated for multiple), e.g. "https://scamshield.vercel.app"
+_origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
+allow_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # dev only - tighten this for production
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
