@@ -6,3 +6,5 @@ numpy
 joblib
 python-multipart
 pydantic
+google-generativeai
+python-dotenv
