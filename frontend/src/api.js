@@ -16,3 +16,4 @@ async function post(path, body) {
 export const checkMessage = (text) => post('/predict/message', { text });
 export const checkTransaction = (payload) => post('/predict/transaction', payload);
 export const checkUpiRequest = (payload) => post('/predict/upi-request', payload);
+export const sendChatMessage = (messages) => post('/chat', { messages });
