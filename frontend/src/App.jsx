@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Hero from './components/Hero';
 import MessageForm from './components/MessageForm';
 import TransactionForm from './components/TransactionForm';
 import UpiRequestForm from './components/UpiRequestForm';
@@ -54,7 +55,9 @@ export default function App() {
         </div>
       </header>
 
-      <main className="main-grid">
+      <Hero />
+
+      <main className="main-grid" id="tool">
         <nav className="tab-rail">
           {TABS.map((t) => (
             <button

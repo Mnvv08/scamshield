@@ -16,7 +16,22 @@ export default function ResultPanel({ result, error, checkedLabel }) {
     return (
       <div className="result-panel result-panel--empty">
         <div className="empty-state">
-          <div className="empty-state-mark" aria-hidden="true" />
+          <svg width="64" height="64" viewBox="0 0 64 64" className="empty-state-icon" aria-hidden="true">
+            <path
+              d="M32 4 L56 14 V30 C56 45 46 55 32 60 C18 55 8 45 8 30 V14 Z"
+              fill="none"
+              stroke="var(--border-hairline)"
+              strokeWidth="2"
+            />
+            <path
+              d="M22 32 L29 39 L43 24"
+              fill="none"
+              stroke="var(--text-faint)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           <p>Run a check to see the risk assessment here.</p>
         </div>
       </div>

@@ -19,7 +19,7 @@ export default function RiskGauge({ score, level }) {
 
   return (
     <div className="risk-gauge">
-      <svg width="176" height="176" viewBox="0 0 176 176">
+      <svg width="176" height="176" viewBox="0 0 176 176" style={{ filter: `drop-shadow(0 0 18px ${color}55)` }}>
         <circle
           cx="88" cy="88" r={radius}
           fill="none"

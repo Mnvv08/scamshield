@@ -68,6 +68,129 @@
   100% { box-shadow: 0 0 0 0 rgba(79, 183, 132, 0); }
 }
 
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  padding: 64px 40px 56px;
+  border-bottom: 1px solid var(--border-hairline);
+  overflow: hidden;
+}
+
+.hero-radar {
+  position: absolute;
+  top: 50%;
+  right: 4%;
+  transform: translateY(-50%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: var(--signal-medium);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.radar-ring--2 { opacity: 0.22; }
+.radar-ring--3 { opacity: 0.12; }
+
+.radar-sweep {
+  stroke: var(--signal-medium);
+  stroke-width: 1.5;
+  transform-origin: 100px 100px;
+  animation: sweep 4s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hero-content {
+  position: relative;
+  max-width: 640px;
+}
+
+.hero-eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--signal-medium);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+}
+
+.hero-title-accent {
+  color: var(--signal-medium);
+}
+
+.hero-subtitle {
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 54ch;
+  margin: 0 0 36px;
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.hero-stat-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    padding: 48px 20px 40px;
+  }
+  .hero-title {
+    font-size: 32px;
+  }
+  .hero-radar {
+    display: none;
+  }
+  .hero-stats {
+    gap: 20px 28px;
+  }
+}
+
+/* ---------- Empty state icon ---------- */
+.empty-state-icon {
+  opacity: 0.8;
+}
+
 /* ---------- Main grid ---------- */
 .main-grid {
   flex: 1;
@@ -289,13 +412,6 @@
   align-items: center;
   gap: 16px;
   color: var(--text-faint);
-}
-
-.empty-state-mark {
-  width: 56px;
-  height: 56px;
-  border: 1px dashed var(--border-hairline);
-  border-radius: 50%;
 }
 
 .empty-state p {

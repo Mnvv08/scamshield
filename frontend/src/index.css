@@ -29,7 +29,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg-base);
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(227, 167, 62, 0.07), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(79, 183, 132, 0.05), transparent),
+    var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
