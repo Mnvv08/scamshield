@@ -33,7 +33,7 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=GEMINI_API_KEY, transport="rest")
 
 CHAT_SYSTEM_PROMPT = """You are the ScamShield Assistant, built into a UPI/digital-payment fraud
 detection app. Help people understand scam patterns, phishing tactics, and how to protect
