@@ -1,6 +1,17 @@
 # ScamShield — UPI & Digital Payment Fraud Detection
 
+**[▶ Try the live demo](https://scamshield-cyan.vercel.app)** &nbsp;·&nbsp; [API docs](https://scamshield-9ksh.onrender.com/docs) &nbsp;·&nbsp; [Browser extension](extension/)
+
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 ![ScamShield dashboard](docs/screenshot.png)
+
+> **Note:** the backend runs on Render's free tier, which sleeps after inactivity.
+> The first request can take up to a minute to wake it — after that it's fast.
 
 A full-stack app that assesses scam/fraud risk across three common attack surfaces in
 Indian digital payments: suspicious **messages** (SMS/WhatsApp phishing), **transaction
@@ -16,6 +27,23 @@ Digital payment fraud in India has grown alongside UPI adoption, and most protec
 reactive (banks flag fraud *after* the money is gone) rather than preventive. This project
 is a prototype of a preventive layer: catching a scam message or a suspicious request
 *before* the user acts on it.
+
+## Try it
+
+Open the [live demo](https://scamshield-cyan.vercel.app) and paste one of these into the **Message** tab:
+
+| Input | Expected |
+|---|---|
+| `Your KYC will expire today. Click http://bit.ly/kyc-verify to update.` | High risk — urgency + shortened link |
+| `Hey, are we still on for lunch at 1?` | Low risk — no scam patterns |
+
+Or hit the API directly:
+
+```bash
+curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Your KYC will expire, click here to update"}'
+```
 
 ## Architecture
 
