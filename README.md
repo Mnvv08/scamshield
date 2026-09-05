@@ -65,7 +65,7 @@ curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
 
 - **Message classifier**: combined word (1-2 gram) + character (3-5 gram) TF-IDF features
   feeding a linear SVM (calibrated for probabilities), selected via 5-fold cross-validated
-  comparison against Logistic Regression and Complement Naive Bayes. Trained on 10,893
+  comparison against Logistic Regression and Complement Naive Bayes. Trained on 6,840
   real, deduplicated messages from two public sources — the
   [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection)
   (5,572 messages) and a
@@ -158,10 +158,11 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
 
 ## Model performance (on held-out test data)
 
-- **Text classifier**: 98% accuracy, 97% F1 on the scam class (up from 93% in the first
-  version), 97% mean 5-fold CV F1. Trained on roughly double the data (10,893 vs. 5,596
-  samples) after adding a second real dataset and comparing 3 model types instead of
-  picking one by default.
+- **Text classifier**: 98% accuracy, 95% F1 on the scam class, 95% mean 5-fold CV F1
+  on a held-out 20% test split. Trained on 6,840 deduplicated messages drawn from two
+  real public datasets (11,543 before deduplication) plus the curated UPI-scam patterns,
+  with the model chosen by 5-fold cross-validated comparison of three model types rather
+  than picked by default.
 - **Transaction model**: Isolation Forest evaluated against synthetic ground-truth
   labels (see caveat
   above — this is performance against the synthetic labels it was trained to detect, not a

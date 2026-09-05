@@ -38,6 +38,24 @@ def load_base_dataset():
     return df
 
 
+def load_smishing_dataset():
+    """
+    Second real source: SMS Phishing Dataset (Mishra & Soni, JIIT).
+    Labels are inconsistently cased in the raw file ("Smishing"/"smishing",
+    "spam"/"Spam"), so they are normalised before mapping.
+    """
+    path = DATA_DIR / "smishing_raw.csv"
+    if not path.exists():
+        print("  smishing dataset not found - skipping (run download_dataset.py)")
+        return None
+    df = pd.read_csv(path, encoding="latin-1")
+    df = df[["LABEL", "TEXT"]].rename(columns={"LABEL": "label", "TEXT": "text"})
+    df["label"] = df["label"].astype(str).str.strip().str.lower()
+    df["label"] = df["label"].map(lambda v: 0 if v == "ham" else 1)
+    df = df.dropna(subset=["text", "label"])
+    return df
+
+
 # ---------------------------------------------------------------------------
 # 2. UPI / digital-payment scam pattern augmentation (hand-curated, disclosed)
 #    Patterns reflect publicly documented scam typologies (RBI/CERT-In advisories,
@@ -104,6 +122,12 @@ def main():
     print("Loading base dataset (UCI SMS Spam Collection)...")
     base_df = load_base_dataset()
     print(f"  base samples: {len(base_df)}")
+
+    smish_df = load_smishing_dataset()
+    if smish_df is not None:
+        print(f"  smishing dataset samples: {len(smish_df)}")
+        base_df = pd.concat([base_df, smish_df], ignore_index=True)
+        print(f"  combined before dedup: {len(base_df)}")
 
     print("Augmenting with UPI/digital-payment scam patterns...")
     df = build_augmented_dataset(base_df)
