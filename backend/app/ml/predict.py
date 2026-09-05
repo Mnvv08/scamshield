@@ -2,14 +2,13 @@ import joblib
 import numpy as np
 from pathlib import Path
 from .rules import score_message_rules, score_upi_request_rules
-from .features import clean_text, CombinedTfidf  # noqa: F401 (CombinedTfidf needed for unpickling)
+from .train_text_classifier import clean_text
 
 MODEL_DIR = Path(__file__).parent.parent / "models"
 
 _text_model = joblib.load(MODEL_DIR / "text_classifier.joblib")
 _text_vectorizer = joblib.load(MODEL_DIR / "text_vectorizer.joblib")
 _txn_model = joblib.load(MODEL_DIR / "transaction_model.joblib")
-_txn_rf_model = joblib.load(MODEL_DIR / "transaction_rf_model.joblib")
 _txn_scaler = joblib.load(MODEL_DIR / "transaction_scaler.joblib")
 _txn_features = joblib.load(MODEL_DIR / "transaction_features.joblib")
 
@@ -60,38 +59,20 @@ def _explain_message(triggered_rules, ml_prob):
 
 
 def predict_transaction(features: dict) -> dict:
-    x = np.array([[features.get(f, _DEFAULT_TXN_VALUES.get(f, 0)) for f in _txn_features]])
+    x = np.array([[features.get(f, 0) for f in _txn_features]])
     x_scaled = _txn_scaler.transform(x)
-
-    # unsupervised signal: how statistically unusual is this transaction
-    raw_iso_score = _txn_model.decision_function(x_scaled)[0]  # higher = more normal
-    iso_risk = float(np.clip(0.5 - raw_iso_score, 0, 1))
+    raw_score = _txn_model.decision_function(x_scaled)[0]  # higher = more normal
     anomaly = _txn_model.predict(x_scaled)[0] == -1
 
-    # supervised signal: does this match the fraud patterns the model was trained on
-    rf_prob = float(_txn_rf_model.predict_proba(x_scaled)[0][1])
-
-    # blend: supervised signal weighted higher (it directly learned the fraud
-    # patterns), unsupervised signal adds robustness to patterns outside that training
-    risk = float(np.clip(0.7 * rf_prob + 0.3 * iso_risk, 0, 1))
+    # convert decision_function output (~[-0.5, 0.5]) to a 0-1 risk score
+    risk = float(np.clip(0.5 - raw_score, 0, 1))
 
     return {
         "risk_score": round(risk, 3),
         "risk_level": _risk_bucket(risk),
         "flagged_anomaly": bool(anomaly),
-        "model_breakdown": {
-            "supervised_probability": round(rf_prob, 3),
-            "anomaly_score": round(iso_risk, 3),
-        },
         "explanation": _explain_transaction(features, risk),
     }
-
-
-_DEFAULT_TXN_VALUES = {
-    "is_weekend": 0,
-    "amount_to_avg_ratio": 1.0,
-    "recent_failed_attempts": 0,
-}
 
 
 def _explain_transaction(f, risk):
@@ -106,10 +87,6 @@ def _explain_transaction(f, risk):
         reasons.append("recent device/SIM change on the account")
     if f.get("payee_risk_score", 0) > 0.5:
         reasons.append("payee has an elevated risk profile")
-    if f.get("amount_to_avg_ratio", 1.0) > 2.5:
-        reasons.append("amount is far larger than this sender's usual pattern")
-    if f.get("recent_failed_attempts", 0) >= 2:
-        reasons.append("multiple recent failed PIN/OTP attempts")
     if not reasons:
         return "Transaction pattern looks consistent with normal usage."
     return "Flagged due to: " + ", ".join(reasons) + "."
