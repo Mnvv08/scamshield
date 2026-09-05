@@ -63,6 +63,9 @@ class TransactionRequest(BaseModel):
     txns_last_hour: int = Field(0, ge=0)
     device_changed_recently: bool = False
     payee_risk_score: float = Field(0.1, ge=0, le=1)
+    is_weekend: bool = False
+    amount_to_avg_ratio: float = Field(1.0, ge=0)
+    recent_failed_attempts: int = Field(0, ge=0)
     # Optional: recent transfers to the SAME payee, so the model can see
     # sequence-level patterns (e.g. salami slicing) that a single transaction
     # cannot reveal. The API stores nothing; the caller supplies what it knows.

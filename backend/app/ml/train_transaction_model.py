@@ -41,6 +41,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 
 RNG = np.random.default_rng(42)
 N_LEGIT = 20000
+N_SALAMI = 600  # second typology, only visible via the sequence features
 N_FRAUD = 1200  # ~5.7% fraud rate - imbalanced on purpose, like real payment fraud
 
 
@@ -56,12 +57,19 @@ def gen_legit_transactions(n):
     # normal spending is usually close to the sender's historical average
     amount_to_avg_ratio = RNG.normal(1.0, 0.35, size=n).clip(0.1, 3.0)
     recent_failed_attempts = RNG.poisson(0.05, size=n).clip(0, 5)
+    # Sequence features from a 24h per-payee window. Normal usage means a
+    # handful of transfers to any given payee per day.
+    payee_txn_count_24h = RNG.poisson(1.2, size=n).clip(1, 8)
+    payee_total_24h = amount * payee_txn_count_24h * RNG.uniform(0.8, 1.2, size=n)
+    amount_to_payee_avg_ratio = RNG.normal(1.0, 0.35, size=n).clip(0.2, 4)
     return pd.DataFrame({
         "hour": hour, "is_weekend": is_weekend, "amount": amount,
         "is_new_payee": is_new_payee, "txns_last_hour": txns_last_hour,
         "device_changed_recently": device_changed_recently, "payee_risk_score": payee_risk_score,
         "time_since_last_txn_min": time_since_last_txn_min,
         "amount_to_avg_ratio": amount_to_avg_ratio, "recent_failed_attempts": recent_failed_attempts,
+        "payee_txn_count_24h": payee_txn_count_24h, "payee_total_24h": payee_total_24h,
+        "amount_to_payee_avg_ratio": amount_to_payee_avg_ratio,
         "label": 0,
     })
 
@@ -80,12 +88,17 @@ def gen_fraud_transactions(n):
     amount_to_avg_ratio = RNG.lognormal(mean=1.3, sigma=0.7, size=n).clip(0.5, 15.0)
     # often preceded by failed PIN/OTP attempts (attacker guessing / social-engineering retries)
     recent_failed_attempts = RNG.poisson(1.2, size=n).clip(0, 8)
+    payee_txn_count_24h = RNG.poisson(2.0, size=n).clip(1, 10)
+    payee_total_24h = amount * payee_txn_count_24h * RNG.uniform(0.8, 1.2, size=n)
+    amount_to_payee_avg_ratio = RNG.normal(1.6, 0.6, size=n).clip(0.2, 8)
     return pd.DataFrame({
         "hour": hour, "is_weekend": is_weekend, "amount": amount,
         "is_new_payee": is_new_payee, "txns_last_hour": txns_last_hour,
         "device_changed_recently": device_changed_recently, "payee_risk_score": payee_risk_score,
         "time_since_last_txn_min": time_since_last_txn_min,
         "amount_to_avg_ratio": amount_to_avg_ratio, "recent_failed_attempts": recent_failed_attempts,
+        "payee_txn_count_24h": payee_txn_count_24h, "payee_total_24h": payee_total_24h,
+        "amount_to_payee_avg_ratio": amount_to_payee_avg_ratio,
         "label": 1,
     })
 
@@ -94,13 +107,44 @@ FEATURES = [
     "hour", "is_weekend", "amount", "is_new_payee", "txns_last_hour",
     "device_changed_recently", "payee_risk_score", "time_since_last_txn_min",
     "amount_to_avg_ratio", "recent_failed_attempts",
+    # Sequence features: derived from a 24h per-payee window. Added because the
+    # point-anomaly features above cannot see salami slicing - each individual
+    # transfer looks ordinary and only the sequence is suspicious.
+    "payee_txn_count_24h", "payee_total_24h", "amount_to_payee_avg_ratio",
 ]
+
+
+def gen_salami_transactions(n):
+    """
+    Salami slicing: many small transfers to one already-known payee. Each
+    transaction is individually unremarkable; only the per-payee daily total
+    reveals it, which is what the sequence features exist to expose.
+    """
+    amount = np.round(RNG.normal(180, 40, size=n), 2).clip(20, 500)
+    payee_txn_count_24h = RNG.poisson(28, size=n).clip(12, 60)
+    return pd.DataFrame({
+        "hour": RNG.normal(15, 3, size=n).clip(0, 23).astype(int),
+        "is_weekend": RNG.choice([0, 1], size=n, p=[0.71, 0.29]),
+        "amount": amount,
+        "is_new_payee": np.zeros(n, dtype=int),
+        "txns_last_hour": RNG.poisson(9, size=n).clip(4, 25),
+        "device_changed_recently": np.zeros(n, dtype=int),
+        "payee_risk_score": RNG.beta(1.5, 8, size=n),
+        "time_since_last_txn_min": RNG.exponential(scale=4, size=n).clip(0.1, 30),
+        "amount_to_avg_ratio": RNG.normal(0.4, 0.15, size=n).clip(0.1, 1.0),
+        "recent_failed_attempts": np.zeros(n, dtype=int),
+        "payee_txn_count_24h": payee_txn_count_24h,
+        "payee_total_24h": amount * payee_txn_count_24h,
+        "amount_to_payee_avg_ratio": RNG.normal(1.0, 0.15, size=n).clip(0.5, 2),
+        "label": 1,
+    })
 
 
 def main():
     legit = gen_legit_transactions(N_LEGIT)
     fraud = gen_fraud_transactions(N_FRAUD)
-    df = pd.concat([legit, fraud], ignore_index=True).sample(frac=1, random_state=1).reset_index(drop=True)
+    salami = gen_salami_transactions(N_SALAMI)
+    df = pd.concat([legit, fraud, salami], ignore_index=True).sample(frac=1, random_state=1).reset_index(drop=True)
     print(f"Generated {len(df)} synthetic transactions ({N_FRAUD} fraud, {N_LEGIT} legit)")
 
     X = df[FEATURES]
