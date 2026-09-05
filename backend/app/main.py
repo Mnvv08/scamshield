@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -58,9 +59,6 @@ class TransactionRequest(BaseModel):
     device_changed_recently: bool = False
     payee_risk_score: float = Field(0.1, ge=0, le=1)
     time_since_last_txn_min: float = Field(180, ge=0)
-    is_weekend: bool = False
-    amount_to_avg_ratio: float = Field(1.0, ge=0)
-    recent_failed_attempts: int = Field(0, ge=0)
 
 
 class UpiRequestPayload(BaseModel):
@@ -131,9 +129,6 @@ def chat_endpoint(req: ChatRequest):
         return {"reply": response.text}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        logging.exception("Gemini call failed")
         raise HTTPException(status_code=502, detail="Assistant temporarily unavailable")
-
-import os, logging
-_k = os.getenv("GEMINI_API_KEY", "")
-logging.warning(f"GEMINI KEY CHECK: length={len(_k)} tail={_k[-4:] if _k else 'MISSING'}")

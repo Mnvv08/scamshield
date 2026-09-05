@@ -5,7 +5,13 @@ let resolvedApiBase = null;
 async function getApiBase() {
   if (resolvedApiBase) return resolvedApiBase;
   try {
-    const res = await fetch(`${SCAMSHIELD_CONFIG.PROD_API}/`, { method: "GET" });
+    // Render free tier can take ~50s to wake. Time out fast, but still
+    // prefer PROD on failure - falling back to localhost silently breaks
+    // the extension for anyone who is not running a local backend.
+    const res = await fetch(`${SCAMSHIELD_CONFIG.PROD_API}/`, {
+      method: "GET",
+      signal: AbortSignal.timeout(3000),
+    });
     if (res.ok) {
       resolvedApiBase = SCAMSHIELD_CONFIG.PROD_API;
       return resolvedApiBase;
@@ -18,10 +24,14 @@ async function getApiBase() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "scamshield-check-selection",
-    title: 'Check "%s" with ScamShield',
-    contexts: ["selection"],
+  // removeAll first: create() throws "duplicate id" if the menu already exists,
+  // which happens every time the extension is reloaded during development.
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "scamshield-check-selection",
+      title: 'Check "%s" with ScamShield',
+      contexts: ["selection"],
+    });
   });
 });
 

@@ -44,12 +44,10 @@ is a prototype of a preventive layer: catching a scam message or a suspicious re
   (a compilation of 5 public phishing-SMS sources, sampled here) — plus a small
   hand-curated set of UPI-scam phrasing patterns (fake KYC, fake refunds, "collect
   request" tricks) based on publicly documented RBI/CERT-In scam advisories.
-- **Transaction risk model**: a hybrid of an unsupervised Isolation Forest (catches
-  statistically unusual transactions without needing labels) and a supervised Random
-  Forest (learns the specific fraud patterns in the training labels, with interpretable
-  feature importances), blended into one risk score. **No real UPI/bank transaction
+- **Transaction risk model**: an unsupervised Isolation Forest, which catches
+  statistically unusual transactions without needing labels. **No real UPI/bank transaction
   dataset exists publicly** — banks and NPCI don't release this data, for good reason.
-  Both models are trained on a **synthetic dataset** (21,200 rows) whose fraud-pattern
+  The model is trained on a **synthetic dataset** (21,200 rows) whose fraud-pattern
   logic (odd-hour transactions, new-payee targeting, transaction bursts, device-change
   correlation, amounts just under verification thresholds, spend far above the sender's
   usual pattern, repeated failed PIN/OTP attempts) is built from publicly documented
@@ -135,9 +133,8 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
   version), 97% mean 5-fold CV F1. Trained on roughly double the data (10,893 vs. 5,596
   samples) after adding a second real dataset and comparing 3 model types instead of
   picking one by default.
-- **Transaction model**: 98% F1 (Isolation Forest, unsupervised) and 100% F1 (Random
-  Forest, supervised) against synthetic ground-truth labels on a proper held-out test
-  split (see caveat
+- **Transaction model**: Isolation Forest evaluated against synthetic ground-truth
+  labels (see caveat
   above — this is performance against the synthetic labels it was trained to detect, not a
   real-world benchmark).
 

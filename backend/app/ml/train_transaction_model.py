@@ -27,7 +27,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 
 MODEL_DIR = Path(__file__).parent.parent / "models"
-MODEL_DIR.mkdir(exist_ok=True)
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 RNG = np.random.default_rng(42)
 N_LEGIT = 9000
@@ -98,7 +100,7 @@ def main():
     joblib.dump(model, MODEL_DIR / "transaction_model.joblib")
     joblib.dump(scaler, MODEL_DIR / "transaction_scaler.joblib")
     joblib.dump(features, MODEL_DIR / "transaction_features.joblib")
-    df.to_csv(Path(__file__).parent.parent / "data" / "synthetic_transactions.csv", index=False)
+    df.to_csv(DATA_DIR / "synthetic_transactions.csv", index=False)
     print(f"\nSaved model, scaler, and synthetic dataset to {MODEL_DIR}")
 
 
