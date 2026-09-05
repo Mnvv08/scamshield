@@ -73,8 +73,10 @@ curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
   (a compilation of 5 public phishing-SMS sources, sampled here) — plus a small
   hand-curated set of UPI-scam phrasing patterns (fake KYC, fake refunds, "collect
   request" tricks) based on publicly documented RBI/CERT-In scam advisories.
-- **Transaction risk model**: an unsupervised Isolation Forest, which catches
-  statistically unusual transactions without needing labels. **No real UPI/bank transaction
+- **Transaction risk model**: two models over the same features — an unsupervised
+  Isolation Forest, which catches statistically unusual transactions without needing
+  labels, and a supervised Random Forest, which learns the labelled fraud patterns and
+  exposes interpretable feature importances. **No real UPI/bank transaction
   dataset exists publicly** — banks and NPCI don't release this data, for good reason.
   The model is trained on a **synthetic dataset** (21,200 rows) whose fraud-pattern
   logic (odd-hour transactions, new-payee targeting, transaction bursts, device-change
@@ -163,10 +165,20 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
   real public datasets (11,543 before deduplication) plus the curated UPI-scam patterns,
   with the model chosen by 5-fold cross-validated comparison of three model types rather
   than picked by default.
-- **Transaction model**: Isolation Forest evaluated against synthetic ground-truth
-  labels (see caveat
-  above — this is performance against the synthetic labels it was trained to detect, not a
-  real-world benchmark).
+- **Transaction model**: on a held-out split of the synthetic data, the Isolation
+  Forest scores 0.79 F1 on the fraud class (0.98 precision, 0.67 recall) and the Random
+  Forest scores 1.00. **The Random Forest's perfect score is a warning, not a result:**
+  it is learning fraud patterns that were written by hand in the generator, so it is
+  measuring re-detection of a known signature. The Isolation Forest's weaker score is
+  arguably the more honest number, since it never sees the labels. See the
+  generalization section below for what happens against typologies the generator never
+  encoded.
+
+  Top feature importances (Random Forest): `time_since_last_txn_min` (0.24),
+  `txns_last_hour` (0.19), `payee_risk_score` (0.12), `amount` (0.08). Notably
+  `is_weekend` contributes almost nothing (0.0001) — a feature worth dropping on
+  evidence rather than intuition.
+
 
 ## Does the rule layer actually help?
 
