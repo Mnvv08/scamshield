@@ -6,11 +6,20 @@ from .train_text_classifier import clean_text
 
 MODEL_DIR = Path(__file__).parent.parent / "models"
 
-_text_model = joblib.load(MODEL_DIR / "text_classifier.joblib")
-_text_vectorizer = joblib.load(MODEL_DIR / "text_vectorizer.joblib")
-_txn_model = joblib.load(MODEL_DIR / "transaction_model.joblib")
-_txn_scaler = joblib.load(MODEL_DIR / "transaction_scaler.joblib")
-_txn_features = joblib.load(MODEL_DIR / "transaction_features.joblib")
+# Loaded lazily and cached, so the API can be imported and tested without
+# requiring a full training pass first.
+_cache = {}
+
+
+def _load(name):
+    if name not in _cache:
+        path = MODEL_DIR / f"{name}.joblib"
+        if not path.exists():
+            raise RuntimeError(
+                f"Model artifact '{path.name}' not found. Run the training scripts first."
+            )
+        _cache[name] = joblib.load(path)
+    return _cache[name]
 
 
 def _risk_bucket(score: float) -> str:
@@ -23,8 +32,8 @@ def _risk_bucket(score: float) -> str:
 
 def predict_message(text: str) -> dict:
     cleaned = clean_text(text)
-    vec = _text_vectorizer.transform([cleaned])
-    ml_prob = float(_text_model.predict_proba(vec)[0][1])
+    vec = _load("text_vectorizer").transform([cleaned])
+    ml_prob = float(_load("text_classifier").predict_proba(vec)[0][1])
 
     rules = score_message_rules(text)
     combined = min(1.0, ml_prob * 0.75 + rules["rule_boost"])
@@ -59,10 +68,10 @@ def _explain_message(triggered_rules, ml_prob):
 
 
 def predict_transaction(features: dict) -> dict:
-    x = np.array([[features.get(f, 0) for f in _txn_features]])
-    x_scaled = _txn_scaler.transform(x)
-    raw_score = _txn_model.decision_function(x_scaled)[0]  # higher = more normal
-    anomaly = _txn_model.predict(x_scaled)[0] == -1
+    x = np.array([[features.get(f, 0) for f in _load("transaction_features")]])
+    x_scaled = _load("transaction_scaler").transform(x)
+    raw_score = _load("transaction_model").decision_function(x_scaled)[0]  # higher = more normal
+    anomaly = _load("transaction_model").predict(x_scaled)[0] == -1
 
     # convert decision_function output (~[-0.5, 0.5]) to a 0-1 risk score
     risk = float(np.clip(0.5 - raw_score, 0, 1))
