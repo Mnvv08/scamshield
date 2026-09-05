@@ -19,6 +19,10 @@ URGENCY_PHRASES = [
     "urgent", "immediately", "will be blocked", "will be suspended",
     "act now", "verify now", "expires today", "final notice",
     "legal action", "account will be closed",
+    # "will expire" catches the very common "your KYC will expire today" phrasing
+    # that "expires today" misses - substring matching is literal.
+    "will expire", "expiring soon", "last chance", "within 24 hours",
+    "avoid suspension", "update your kyc", "kyc will expire",
 ]
 
 CREDENTIAL_REQUEST_PHRASES = [
