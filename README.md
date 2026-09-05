@@ -211,6 +211,35 @@ assumption. The gap is small, and the 10x multiplier is a judgement call rather 
 measured figure, so the threshold is left where it is and the trade-off is documented
 here instead of being buried in a constant.
 
+### How far does the transaction model actually generalize?
+
+The transaction model is trained on synthetic data whose fraud patterns were written
+by hand. Scoring it against those same patterns is circular — it measures re-detection
+of a known signature, not fraud detection. So it is also tested against typologies the
+generator never encoded (`python app/ml/test_generalization.py`):
+
+| Fraud typology | Recall |
+|---|---|
+| In-generator (late-night, new payee, high payee risk) | **1.000** |
+| Patient social-engineering (one normal-looking transfer) | 0.828 |
+| Salami slicing (small, rapid transfers to a known clean payee) | **0.168** |
+| *False-alarm rate on fresh legitimate traffic* | *0.046* |
+
+**Near-perfect recall on the pattern it was designed around; 17% on one it was not.**
+The headline synthetic score should be read as an upper bound, not an estimate of
+real-world performance.
+
+The failure has a specific cause rather than being general weakness. Isolation Forest
+detects *point* anomalies — transactions unusual in the joint feature space. Salami
+slicing is invisible to that: each individual transfer is unremarkable and only the
+*sequence* is suspicious. Patient social-engineering is caught reasonably often, but
+somewhat by accident — "new payee after a long gap" happens to be statistically rare
+rather than being something the model understands as fraud.
+
+Fixing this needs sequence-level features (per-payee rolling totals, transfer counts
+over a window), not a different model. That is the clearest next step for this
+component.
+
 ## Deployment
 
 **Backend (Render, free tier):**
