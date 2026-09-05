@@ -168,6 +168,49 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
   above — this is performance against the synthetic labels it was trained to detect, not a
   real-world benchmark).
 
+## Does the rule layer actually help?
+
+The hybrid design (ML + explicit rules) is a design claim, so it is measured rather
+than asserted. Reproduce with `python app/ml/evaluate.py`.
+
+Held-out test set: 1,368 messages, 287 scam.
+
+| Variant | Precision | Recall | F1 | F2 | Missed scams | False alarms |
+|---|---|---|---|---|---|---|
+| ML only (0.50) | 0.952 | 0.958 | **0.955** | 0.957 | 12 | 14 |
+| Rules only | 0.846 | 0.115 | 0.202 | 0.139 | 254 | 6 |
+| Hybrid, deployed (0.35) | 0.929 | 0.962 | 0.945 | 0.955 | **11** | 21 |
+
+**The hybrid scores slightly lower on F1 than the classifier alone.** That is worth
+stating plainly rather than hiding: adding rules did not make the model more accurate
+by that measure.
+
+F1 is the wrong objective here, though. A missed scam can cost someone their savings;
+a false alarm costs them a few seconds. F1 weights those equally. Weighting a missed
+scam at 10x a false alarm, the hybrid comes out slightly ahead (131 vs 134) because it
+catches one more scam for seven more false alarms.
+
+The rules-only row is the more interesting one: precision 0.846 at recall 0.115. The
+rules fire rarely, but they are usually right when they do — which is exactly what a
+rule layer should be. Their real contribution is not accuracy but the
+`triggered_rules` and `explanation` fields, which the classifier cannot produce.
+
+### Threshold choice
+
+| Threshold | Precision | Recall | F1 | Missed | False alarms | Cost* |
+|---|---|---|---|---|---|---|
+| 0.30 | 0.891 | 0.969 | 0.928 | 9 | 34 | **124** |
+| 0.35 (deployed) | 0.929 | 0.962 | 0.945 | 11 | 21 | 131 |
+| 0.40 | 0.968 | 0.958 | **0.963** | 12 | 9 | 129 |
+| 0.70 | 1.000 | 0.631 | 0.774 | 106 | 0 | 1060 |
+
+\* cost = missed scams x 10 + false alarms
+
+The deployed threshold of 0.35 is not cost-optimal: 0.30 is cheaper under this
+assumption. The gap is small, and the 10x multiplier is a judgement call rather than a
+measured figure, so the threshold is left where it is and the trade-off is documented
+here instead of being buried in a constant.
+
 ## Deployment
 
 **Backend (Render, free tier):**
