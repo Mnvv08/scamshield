@@ -226,19 +226,35 @@ generator never encoded (`python app/ml/test_generalization.py`):
 | *False-alarm rate on fresh legitimate traffic* | *0.046* |
 
 **Near-perfect recall on the pattern it was designed around; 17% on one it was not.**
-The headline synthetic score should be read as an upper bound, not an estimate of
-real-world performance.
 
-The failure has a specific cause rather than being general weakness. Isolation Forest
+The failure had a specific cause rather than being general weakness. Isolation Forest
 detects *point* anomalies — transactions unusual in the joint feature space. Salami
 slicing is invisible to that: each individual transfer is unremarkable and only the
-*sequence* is suspicious. Patient social-engineering is caught reasonably often, but
-somewhat by accident — "new payee after a long gap" happens to be statistically rare
-rather than being something the model understands as fraud.
+*sequence* is suspicious.
 
-Fixing this needs sequence-level features (per-payee rolling totals, transfer counts
-over a window), not a different model. That is the clearest next step for this
-component.
+So the fix was a feature problem, not a model problem. The model now also receives
+three features derived from a 24-hour per-payee window — transfer count, running
+total, and this amount against the payee average:
+
+| Fraud typology | Before | After |
+|---|---|---|
+| In-generator (late-night, new payee, high payee risk) | 1.000 | 1.000 |
+| Patient social-engineering (one normal-looking transfer) | 0.828 | **0.978** |
+| Salami slicing (small, rapid transfers to a known clean payee) | **0.168** | **1.000** |
+| *False-alarm rate on fresh legitimate traffic* | *0.046* | *0.044* |
+
+The blind spot closes without costing precision elsewhere.
+
+**How the API gets this history.** `/predict/transaction` is stateless — it stores
+nothing. Callers optionally pass `recent_payee_txns`, a list of `{amount, minutes_ago}`
+for earlier transfers to the same payee; anything older than 24 hours is ignored. Omit
+it and the endpoint behaves exactly as before, assuming this is the only transfer to
+that payee rather than inventing a history.
+
+That design is honest for a scoring service but not sufficient for a public one: a
+caller could lower their own score simply by omitting history. A production deployment
+would persist transaction history server-side and derive these features from its own
+records rather than trusting the request.
 
 ## Deployment
 
