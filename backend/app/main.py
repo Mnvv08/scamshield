@@ -132,7 +132,7 @@ def chat_endpoint(req: ChatRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gemini API error: {str(e)}")
+        raise HTTPException(status_code=502, detail="Assistant temporarily unavailable")
 
 import os, logging
 _k = os.getenv("GEMINI_API_KEY", "")
