@@ -20,9 +20,13 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-FEATURES = ["hour", "amount", "is_new_payee", "txns_last_hour",
-            "device_changed_recently", "payee_risk_score",
-            "time_since_last_txn_min"]
+BASE_FEATURES = ["hour", "amount", "is_new_payee", "txns_last_hour",
+                 "device_changed_recently", "payee_risk_score",
+                 "time_since_last_txn_min"]
+# Sequence features derived from a 24h per-payee window. Added after this test
+# showed the base feature set could not see salami slicing.
+SEQ_FEATURES = ["payee_txn_count_24h", "payee_total_24h", "amount_to_payee_avg_ratio"]
+FEATURES = BASE_FEATURES + SEQ_FEATURES
 
 RNG = np.random.default_rng(7)
 N_LEGIT_TRAIN = 9000
@@ -39,6 +43,9 @@ def legit_traffic(n, rng):
         "device_changed_recently": rng.choice([0, 1], n, p=[.97, .03]),
         "payee_risk_score": rng.beta(1.5, 8, n),
         "time_since_last_txn_min": rng.exponential(180, n).clip(1, 5000),
+        "payee_txn_count_24h": rng.poisson(1.2, n).clip(1, 8),
+        "payee_total_24h": np.round(rng.lognormal(6.3, 1.0, n), 2).clip(10, 90000),
+        "amount_to_payee_avg_ratio": rng.normal(1.0, .35, n).clip(.2, 4),
     })
 
 
@@ -53,6 +60,9 @@ def typologies(n, rng):
             "device_changed_recently": rng.choice([0, 1], n, p=[.4, .6]),
             "payee_risk_score": rng.beta(6, 2, n),
             "time_since_last_txn_min": rng.exponential(8, n).clip(.1, 200),
+            "payee_txn_count_24h": rng.poisson(2, n).clip(1, 10),
+            "payee_total_24h": np.round(rng.normal(19000, 4000, n), 2).clip(1000, 90000),
+            "amount_to_payee_avg_ratio": rng.normal(1.6, .6, n).clip(.2, 8),
         }),
         # Many small transfers to an already-known, clean-looking payee at
         # ordinary hours. Each transaction is individually unremarkable.
@@ -64,6 +74,10 @@ def typologies(n, rng):
             "device_changed_recently": np.zeros(n, int),
             "payee_risk_score": rng.beta(1.5, 8, n),
             "time_since_last_txn_min": rng.exponential(4, n).clip(.1, 30),
+            # the giveaway: dozens of transfers to ONE payee in a day
+            "payee_txn_count_24h": rng.poisson(28, n).clip(12, 60),
+            "payee_total_24h": np.round(rng.normal(180 * 28, 900, n), 2),
+            "amount_to_payee_avg_ratio": rng.normal(1.0, .15, n).clip(.5, 2),
         }),
         # Victim is talked into a single, ordinary-looking payment after a long
         # grooming period. No velocity, no device change, mid-size amount.
@@ -75,6 +89,9 @@ def typologies(n, rng):
             "device_changed_recently": np.zeros(n, int),
             "payee_risk_score": rng.beta(2, 6, n),
             "time_since_last_txn_min": rng.exponential(400, n).clip(60, 5000),
+            "payee_txn_count_24h": np.ones(n, int),
+            "payee_total_24h": np.round(rng.normal(4200, 900, n), 2).clip(500, 20000),
+            "amount_to_payee_avg_ratio": np.ones(n),
         }),
     }
 

@@ -67,7 +67,35 @@ def _explain_message(triggered_rules, ml_prob):
     return "Flagged because it " + "; ".join(parts) + "."
 
 
+def derive_payee_features(features: dict) -> dict:
+    """
+    Turn a caller-supplied list of recent transfers to the same payee into the
+    24h rolling features the model expects.
+
+    The API is stateless: it does not store transaction history, so the caller
+    passes what it knows. `recent_payee_txns` is a list of {amount, minutes_ago}.
+    When it is absent we fall back to "this is the only transfer to this payee",
+    which is the correct neutral assumption rather than a guess.
+    """
+    f = dict(features)
+    recent = f.pop("recent_payee_txns", None) or []
+    amount = f.get("amount", 0) or 0
+
+    within_24h = [t for t in recent if (t.get("minutes_ago") or 0) <= 1440]
+    prior_amounts = [t.get("amount", 0) or 0 for t in within_24h]
+
+    f["payee_txn_count_24h"] = len(prior_amounts) + 1          # +1 for this one
+    f["payee_total_24h"] = sum(prior_amounts) + amount
+    if prior_amounts:
+        avg = sum(prior_amounts) / len(prior_amounts)
+        f["amount_to_payee_avg_ratio"] = amount / avg if avg > 0 else 1.0
+    else:
+        f["amount_to_payee_avg_ratio"] = 1.0
+    return f
+
+
 def predict_transaction(features: dict) -> dict:
+    features = derive_payee_features(features)
     x = np.array([[features.get(f, 0) for f in _load("transaction_features")]])
     x_scaled = _load("transaction_scaler").transform(x)
     raw_score = _load("transaction_model").decision_function(x_scaled)[0]  # higher = more normal
@@ -96,6 +124,10 @@ def _explain_transaction(f, risk):
         reasons.append("recent device/SIM change on the account")
     if f.get("payee_risk_score", 0) > 0.5:
         reasons.append("payee has an elevated risk profile")
+    if f.get("payee_txn_count_24h", 1) >= 10:
+        reasons.append(f"{int(f['payee_txn_count_24h'])} transfers to this payee in 24h")
+    if f.get("amount_to_payee_avg_ratio", 1) >= 3:
+        reasons.append("amount is far larger than usual for this payee")
     if not reasons:
         return "Transaction pattern looks consistent with normal usage."
     return "Flagged due to: " + ", ".join(reasons) + "."

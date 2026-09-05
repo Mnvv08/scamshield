@@ -76,3 +76,48 @@ class TestChatEndpoint:
         assert "AIza" not in body
         assert "AQ.Ab8" not in body
         assert "Traceback" not in body
+
+
+class TestPayeeHistory:
+    """
+    Sequence features: the API is stateless, so callers pass recent transfers to
+    the same payee. Without them the model can only see one transaction, which
+    makes salami slicing invisible (see app/ml/test_generalization.py).
+    """
+
+    def test_history_is_optional(self):
+        r = client.post("/predict/transaction", json={"hour": 14, "amount": 500})
+        assert r.status_code == 200
+
+    def test_rejects_malformed_history(self):
+        r = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 500,
+            "recent_payee_txns": [{"amount": -5, "minutes_ago": 10}],
+        })
+        assert r.status_code == 422
+
+    def test_repeated_small_transfers_raise_risk(self):
+        """Salami slicing: each transfer is ordinary, the pattern is not."""
+        body = {"hour": 14, "amount": 180, "is_new_payee": False}
+        alone = client.post("/predict/transaction", json=body).json()
+        with_history = client.post("/predict/transaction", json={
+            **body,
+            "recent_payee_txns": [{"amount": 180, "minutes_ago": i * 20} for i in range(1, 31)],
+        }).json()
+        assert with_history["risk_score"] > alone["risk_score"]
+        assert "transfers to this payee" in with_history["explanation"]
+
+    def test_ignores_transactions_older_than_24h(self):
+        recent = [{"amount": 180, "minutes_ago": i * 20} for i in range(1, 31)]
+        stale = [{"amount": 180, "minutes_ago": 1441 + i} for i in range(1, 31)]
+        body = {"hour": 14, "amount": 180, "is_new_payee": False}
+        r_recent = client.post("/predict/transaction", json={**body, "recent_payee_txns": recent}).json()
+        r_stale = client.post("/predict/transaction", json={**body, "recent_payee_txns": stale}).json()
+        assert r_stale["risk_score"] < r_recent["risk_score"]
+
+    def test_amount_spike_versus_payee_average(self):
+        r = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 40000, "is_new_payee": False,
+            "recent_payee_txns": [{"amount": 200, "minutes_ago": i * 100} for i in range(1, 5)],
+        }).json()
+        assert "far larger than usual" in r["explanation"]
