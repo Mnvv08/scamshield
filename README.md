@@ -6,6 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
+![tests](https://github.com/Mnvv08/scamshield/actions/workflows/tests.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ![ScamShield dashboard](docs/screenshot.png)
