@@ -2,9 +2,13 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
+from dotenv import load_dotenv
+import google.generativeai as genai
 
 from app.ml.predict import predict_message, predict_transaction, predict_upi_request
+
+load_dotenv()
 
 app = FastAPI(
     title="ScamShield API",
@@ -14,15 +18,32 @@ app = FastAPI(
 
 # In production, set ALLOWED_ORIGINS to your frontend's deployed URL
 # (comma-separated for multiple), e.g. "https://scamshield.vercel.app"
+# chrome-extension:// origins are always allowed separately (via allow_origin_regex)
+# so the ScamShield browser extension can reach the API regardless of this setting.
 _origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
 allow_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
+    allow_origin_regex=r"chrome-extension://.*",
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+CHAT_SYSTEM_PROMPT = """You are the ScamShield Assistant, built into a UPI/digital-payment fraud
+detection app. Help people understand scam patterns, phishing tactics, and how to protect
+themselves - especially around UPI, digital payments, and India's digital-payment context.
+Keep answers concise and practical.
+You are not a substitute for running an actual check in the app - if someone describes a
+specific message, transaction, or request they're worried about, suggest they run it through
+the relevant tab (Message / Transaction / UPI request) instead of guessing at a verdict.
+Don't claim specific internal model behavior you're not certain of; describe the general
+approach (ML + rule-based scoring) rather than asserting exact internals."""
 
 
 class MessageRequest(BaseModel):
@@ -48,6 +69,15 @@ class UpiRequestPayload(BaseModel):
     requested_amount: Optional[float] = None
     payee_verified: bool = True
     note: Optional[str] = ""
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
 
 
 @app.get("/")
@@ -77,3 +107,29 @@ def predict_upi_request_endpoint(req: UpiRequestPayload):
         return predict_upi_request(req.dict())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on the server.")
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="messages must not be empty")
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-3.6-flash",
+            system_instruction=CHAT_SYSTEM_PROMPT,
+        )
+        # Gemini's chat history format expects "model" instead of "assistant" for the AI turn.
+        history = []
+        for m in req.messages[:-1]:
+            gemini_role = "model" if m.role == "assistant" else "user"
+            history.append({"role": gemini_role, "parts": [m.content]})
+
+        chat = model.start_chat(history=history)
+        response = chat.send_message(req.messages[-1].content)
+        return {"reply": response.text}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Gemini API error: {str(e)}")
