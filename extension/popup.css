@@ -1,0 +1,209 @@
+:root {
+  --bg-base: #0F1B24;
+  --bg-panel: #16262F;
+  --bg-input: #10202A;
+  --border-hairline: #2A404C;
+  --text-primary: #EAF0F2;
+  --text-muted: #85A0AC;
+  --text-faint: #56717D;
+  --signal-safe: #4FB784;
+  --signal-medium: #E3A73E;
+  --signal-high: #E15B4F;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 340px;
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.brand-mark {
+  width: 11px;
+  height: 11px;
+  background: var(--signal-medium);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  flex: 1;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.status-dot.online { background: var(--signal-safe); }
+.status-dot.offline { background: var(--signal-high); }
+
+main {
+  padding: 16px;
+}
+
+.hidden { display: none !important; }
+
+.empty-state p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 4px 0 16px;
+}
+
+.empty-state strong {
+  color: var(--text-primary);
+}
+
+.result-state {
+  margin-bottom: 16px;
+}
+
+.gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.gauge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 4px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.gauge.risk-high { border-color: var(--signal-high); color: var(--signal-high); }
+.gauge.risk-medium { border-color: var(--signal-medium); color: var(--signal-medium); }
+.gauge.risk-low { border-color: var(--signal-safe); color: var(--signal-safe); }
+
+.gauge-info { min-width: 0; }
+
+.risk-level {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.checked-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explanation {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.rule-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rule-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--signal-high);
+  background: rgba(225, 91, 79, 0.12);
+  border: 1px solid rgba(225, 91, 79, 0.3);
+  padding: 3px 7px;
+  border-radius: 3px;
+}
+
+.error-state p {
+  font-size: 13px;
+  color: var(--signal-high);
+  font-family: var(--font-mono);
+}
+
+.loading-state p {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.manual-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.manual-form textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.manual-form button {
+  background: var(--signal-medium);
+  color: #16130A;
+  border: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px;
+  cursor: pointer;
+  align-self: flex-start;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.manual-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.footer a {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-decoration: none;
+  font-family: var(--font-mono);
+}
+
+.footer a:hover {
+  color: var(--signal-medium);
+}

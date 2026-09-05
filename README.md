@@ -34,18 +34,28 @@ is a prototype of a preventive layer: catching a scam message or a suspicious re
                       └──────────────────────────────────────────┘
 ```
 
-- **Message classifier**: TF-IDF + Logistic Regression, trained on the real, public
+- **Message classifier**: combined word (1-2 gram) + character (3-5 gram) TF-IDF features
+  feeding a linear SVM (calibrated for probabilities), selected via 5-fold cross-validated
+  comparison against Logistic Regression and Complement Naive Bayes. Trained on 10,893
+  real, deduplicated messages from two public sources — the
   [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection)
-  dataset (5,572 labeled messages), extended with a small hand-curated set of UPI-scam
-  phrasing patterns (fake KYC, fake refunds, "collect request" tricks) based on publicly
-  documented RBI/CERT-In scam advisories.
-- **Transaction risk model**: Isolation Forest anomaly detection. **No real UPI/bank
-  transaction dataset exists publicly** — banks and NPCI don't release this data, for
-  good reason. This model is trained on a **synthetic dataset** whose fraud-pattern logic
-  (odd-hour transactions, new-payee targeting, transaction bursts, device-change
-  correlation, amounts just under verification thresholds) is built from publicly
-  documented fraud typologies, not real data. See `backend/app/ml/train_transaction_model.py`
-  for the exact generation logic — it's fully commented and disclosed there.
+  (5,572 messages) and a
+  [combined smishing research dataset](https://github.com/shaghayegh-hp/Smishing_Dataset)
+  (a compilation of 5 public phishing-SMS sources, sampled here) — plus a small
+  hand-curated set of UPI-scam phrasing patterns (fake KYC, fake refunds, "collect
+  request" tricks) based on publicly documented RBI/CERT-In scam advisories.
+- **Transaction risk model**: a hybrid of an unsupervised Isolation Forest (catches
+  statistically unusual transactions without needing labels) and a supervised Random
+  Forest (learns the specific fraud patterns in the training labels, with interpretable
+  feature importances), blended into one risk score. **No real UPI/bank transaction
+  dataset exists publicly** — banks and NPCI don't release this data, for good reason.
+  Both models are trained on a **synthetic dataset** (21,200 rows) whose fraud-pattern
+  logic (odd-hour transactions, new-payee targeting, transaction bursts, device-change
+  correlation, amounts just under verification thresholds, spend far above the sender's
+  usual pattern, repeated failed PIN/OTP attempts) is built from publicly documented
+  fraud typologies, not real data, and evaluated on a proper held-out test split. See
+  `backend/app/ml/train_transaction_model.py` for the exact generation logic — it's
+  fully commented and disclosed there.
 - **Rule engine**: explicit, auditable checks (known scam phrasing, suspicious URLs,
   collect-request red flags) that combine with the ML score. Real fraud systems are
   hybrid for a reason — rules catch known patterns instantly and are explainable in a way
@@ -121,8 +131,13 @@ Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a
 
 ## Model performance (on held-out test data)
 
-- **Text classifier**: 98% accuracy, 93% F1 on the scam class, 92% mean 5-fold CV F1.
-- **Transaction anomaly model**: 95% F1 against synthetic ground-truth labels (see caveat
+- **Text classifier**: 98% accuracy, 97% F1 on the scam class (up from 93% in the first
+  version), 97% mean 5-fold CV F1. Trained on roughly double the data (10,893 vs. 5,596
+  samples) after adding a second real dataset and comparing 3 model types instead of
+  picking one by default.
+- **Transaction model**: 98% F1 (Isolation Forest, unsupervised) and 100% F1 (Random
+  Forest, supervised) against synthetic ground-truth labels on a proper held-out test
+  split (see caveat
   above — this is performance against the synthetic labels it was trained to detect, not a
   real-world benchmark).
 

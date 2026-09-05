@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand-mark"></span>
+    <span class="brand-name">ScamShield</span>
+    <span class="status-dot" id="statusDot" title="Checking connection..."></span>
+  </header>
+
+  <main id="main">
+    <section id="emptyState" class="empty-state">
+      <p>Select text on any page, right-click, and choose
+        <strong>"Check with ScamShield"</strong> — or paste something below.</p>
+    </section>
+
+    <section id="resultState" class="result-state hidden">
+      <div class="gauge-row">
+        <div class="gauge" id="gauge">
+          <span id="gaugeScore">–</span>
+        </div>
+        <div class="gauge-info">
+          <div id="riskLevel" class="risk-level">—</div>
+          <div id="checkedText" class="checked-text"></div>
+        </div>
+      </div>
+      <p id="explanation" class="explanation"></p>
+      <div id="ruleChips" class="rule-chips"></div>
+    </section>
+
+    <section id="errorState" class="error-state hidden">
+      <p id="errorText"></p>
+    </section>
+
+    <section id="loadingState" class="loading-state hidden">
+      <p>Checking…</p>
+    </section>
+
+    <form id="manualForm" class="manual-form">
+      <textarea id="manualInput" rows="3" placeholder="Paste a message, SMS, or link text to check…"></textarea>
+      <button type="submit" id="manualSubmit">Check</button>
+    </form>
+  </main>
+
+  <footer class="footer">
+    <a href="https://scamshield-cyan.vercel.app" target="_blank" rel="noopener">Open full dashboard →</a>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
