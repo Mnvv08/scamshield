@@ -133,3 +133,7 @@ def chat_endpoint(req: ChatRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gemini API error: {str(e)}")
+
+import os, logging
+_k = os.getenv("GEMINI_API_KEY", "")
+logging.warning(f"GEMINI KEY CHECK: length={len(_k)} tail={_k[-4:] if _k else 'MISSING'}")
