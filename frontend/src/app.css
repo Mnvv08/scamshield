@@ -846,3 +846,49 @@
   font-size: 12px;
   color: var(--text-faint);
 }
+
+/* ---------------------------------------------------------------
+   Phones. UPI scams arrive on a phone, so this is the primary
+   surface, not an afterthought. Targets 360-430px viewports.
+   --------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .topbar { padding: 14px 16px; }
+  .panel { padding: 20px 16px; }
+  .hero-title { font-size: 26px; }
+  .hero-sub { font-size: 15px; }
+
+  /* Four tabs at 140px each forced a 560px scroll on a 375px screen.
+     Two rows of two fit without scrolling and keep every tab visible. */
+  .tab-rail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow-x: visible;
+  }
+  .tab-btn {
+    min-width: 0;
+    flex: none;
+    padding: 12px 8px;
+    font-size: 13px;
+    min-height: 48px;
+  }
+
+  /* 44px is the minimum comfortable touch target. */
+  .submit-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+  .sample-chip { min-height: 36px; font-size: 12px; }
+
+  .gauge-score { font-size: 30px; }
+  .verdict-title { font-size: 21px; }
+  .action-list { padding: 12px 14px; }
+  .action-list li { font-size: 13px; }
+
+  /* Stop iOS Safari zooming in when a field is focused: it triggers
+     below 16px and leaves the layout shifted afterwards. */
+  input, textarea, select { font-size: 16px; }
+
+  .chat-messages { max-height: 320px; }
+}
