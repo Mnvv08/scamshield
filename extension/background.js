@@ -68,6 +68,9 @@ async function runCheckAndStore(text, tabId) {
   await chrome.storage.local.set({
     lastCheck: { text, loading: true, result: null, error: null },
   });
+  if (tabId != null) {
+    chrome.action.setBadgeText({ text: "", tabId });
+  }
   try {
     const result = await checkText(text);
     await chrome.storage.local.set({
@@ -83,6 +86,9 @@ async function runCheckAndStore(text, tabId) {
     await chrome.storage.local.set({
       lastCheck: { text, loading: false, result: null, error: err.message },
     });
+    if (tabId != null) {
+      chrome.action.setBadgeText({ text: "", tabId });
+    }
   }
   // Open the popup automatically so the person sees the result right away.
   try {
