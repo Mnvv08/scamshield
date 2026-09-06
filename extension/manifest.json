@@ -19,17 +19,8 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "run_at": "document_idle"
-    }
-  ],
   "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
   "host_permissions": [
-    "https://scamshield-9ksh.onrender.com/*",
-    "http://localhost:8000/*"
+    "https://scamshield-9ksh.onrender.com/*"
   ]
 }
