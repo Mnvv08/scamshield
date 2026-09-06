@@ -35,6 +35,21 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+function extractErrorMessage(body, status) {
+  if (typeof body.detail === "string") return body.detail;
+  if (Array.isArray(body.detail) && body.detail.length) {
+    const first = body.detail[0];
+    const field = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : null;
+    return field ? `${field}: ${first.msg}` : first.msg || `Request failed (${status})`;
+  }
+  if (typeof body.error === "string") {
+    return status === 429
+      ? "You're checking things a bit fast \u2014 wait a moment and try again."
+      : body.error;
+  }
+  return `Request failed (${status})`;
+}
+
 async function checkText(text) {
   const base = await getApiBase();
   const res = await fetch(`${base}/predict/message`, {
@@ -43,8 +58,8 @@ async function checkText(text) {
     body: JSON.stringify({ text }),
   });
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(detail.detail || `Request failed (${res.status})`);
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(extractErrorMessage(errBody, res.status));
   }
   return res.json();
 }
