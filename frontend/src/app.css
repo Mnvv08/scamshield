@@ -1185,3 +1185,17 @@ button:focus-visible {
   color: var(--signal-high);
   margin: -4px 0 8px;
 }
+
+.mic-btn--compact {
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mic-btn--compact:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -37,27 +37,6 @@ function saveHistoryToSession(history) {
     /* storage unavailable - history still works for the rest of the session */
   }
 }
-const HISTORY_STORAGE_KEY = 'scamshield-history';
-
-function loadHistoryFromSession() {
-  try {
-    const raw = sessionStorage.getItem(HISTORY_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((entry) => ({ ...entry, at: new Date(entry.at) }));
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveHistoryToSession(history) {
-  try {
-    sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-  } catch (e) {
-    /* storage unavailable - history still works for the rest of the session */
-  }
-}
 
 const LEVEL_WORD = { high: 'HIGH RISK', medium: 'MEDIUM RISK', low: 'low risk' };
 

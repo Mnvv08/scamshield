@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useId } from 'react';
+import { useState, useRef, useEffect, useId, useCallback } from 'react';
 import { sendChatMessage } from '../api';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 const STARTER_PROMPTS = [
   "What's a UPI collect request scam?",
@@ -14,6 +15,13 @@ export default function ChatAssistant() {
   const [error, setError] = useState(null);
   const scrollRef = useRef(null);
   const inputId = useId();
+
+  const handleSpeechResult = useCallback((transcript) => {
+    setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+  }, []);
+
+  const { listening, error: speechError, start, stop, supported: micSupported } =
+    useSpeechRecognition(handleSpeechResult);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -93,6 +101,7 @@ export default function ChatAssistant() {
         )}
       </div>
 
+      {speechError && <p className="mic-error" role="alert">{speechError}</p>}
       <form className="chat-input-row" onSubmit={handleSubmit}>
         <label htmlFor={inputId} className="sr-only">
           Ask the ScamShield assistant a question
@@ -105,6 +114,24 @@ export default function ChatAssistant() {
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
         />
+        {micSupported && (
+          <button
+            type="button"
+            className={`mic-btn mic-btn--compact ${listening ? 'mic-btn--listening' : ''}`}
+            onClick={listening ? stop : start}
+            aria-pressed={listening}
+            aria-label={listening ? 'Stop voice input' : 'Ask by voice'}
+            title={listening ? 'Listening\u2026 click to stop' : 'Ask by voice instead of typing'}
+            disabled={loading}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"
+                    stroke="currentColor" strokeWidth="2" />
+              <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor"
+                    strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
         <button type="submit" className="submit-btn" disabled={loading || !input.trim()}>
           Send
         </button>
