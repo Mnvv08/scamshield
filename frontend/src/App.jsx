@@ -16,6 +16,48 @@ const TABS = [
 ];
 
 const MAX_HISTORY = 10;
+const HISTORY_STORAGE_KEY = 'scamshield-history';
+
+function loadHistoryFromSession() {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((entry) => ({ ...entry, at: new Date(entry.at) }));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistoryToSession(history) {
+  try {
+    sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  } catch (e) {
+    /* storage unavailable - history still works for the rest of the session */
+  }
+}
+const HISTORY_STORAGE_KEY = 'scamshield-history';
+
+function loadHistoryFromSession() {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((entry) => ({ ...entry, at: new Date(entry.at) }));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistoryToSession(history) {
+  try {
+    sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  } catch (e) {
+    /* storage unavailable - history still works for the rest of the session */
+  }
+}
 
 const LEVEL_WORD = { high: 'HIGH RISK', medium: 'MEDIUM RISK', low: 'low risk' };
 
@@ -45,7 +87,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checkedLabel, setCheckedLabel] = useState('');
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(loadHistoryFromSession);
   const [requestId, setRequestId] = useState(0);
   const [backendStatus, setBackendStatus] = useState('checking');
 
@@ -108,7 +150,14 @@ export default function App() {
     setCheckedLabel(entry.label);
   };
 
-  const clearHistory = () => setHistory([]);
+  useEffect(() => {
+    saveHistoryToSession(history);
+  }, [history]);
+
+  const clearHistory = () => {
+    setHistory([]);
+    sessionStorage.removeItem(HISTORY_STORAGE_KEY);
+  };
 
   const [exportState, setExportState] = useState('idle');
   const exportHistory = async () => {
