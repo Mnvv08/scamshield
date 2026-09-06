@@ -80,6 +80,13 @@ function VerdictIcon({ level }) {
   );
 }
 
+function parseReasonsFromExplanation(explanation) {
+  if (!explanation) return [];
+  const match = explanation.match(/^Flagged due to: (.+)\.$/);
+  if (!match) return [];
+  return match[1].split(', ').filter(Boolean);
+}
+
 export default function ResultPanel({ result, error, checkedLabel, loading }) {
   if (loading) return <LoadingState />;
 
@@ -111,7 +118,11 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
   }
 
   const level = result.risk_level || 'low';
-  const rules = result.triggered_rules || [];
+  // Message and UPI results carry a real triggered_rules array; transaction
+  // results only have a prose explanation ("Flagged due to: X, Y, Z."). Both
+  // ended up rendering visibly differently for the same information, so
+  // parse the prose into the same chip shape when the array isn't present.
+  const rules = result.triggered_rules || parseReasonsFromExplanation(result.explanation);
   const verdict = VERDICT[level] || VERDICT.low;
   const actions = ACTIONS[level] || ACTIONS.low;
 
@@ -136,7 +147,7 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
       {rules.length > 0 && (
         <div className="rule-chips">
           {rules.map((r) => (
-            <span key={r} className="rule-chip">{r.replaceAll('_', ' ')}</span>
+            <span key={r} className="rule-chip">{r.includes('_') ? r.replaceAll('_', ' ') : r}</span>
           ))}
         </div>
       )}
