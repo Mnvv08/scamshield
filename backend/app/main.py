@@ -8,7 +8,8 @@ from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from app.ml.predict import predict_message, predict_transaction, predict_upi_request
 
@@ -53,8 +54,11 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY, transport="rest")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+# google-genai replaces the end-of-life google-generativeai package. It speaks
+# plain HTTPS rather than gRPC, which is what transport="rest" was working around:
+# gRPC retried silently inside the container instead of surfacing errors.
+_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 CHAT_SYSTEM_PROMPT = """You are the ScamShield Assistant, built into a UPI/digital-payment fraud
 detection app. Help people understand scam patterns, phishing tactics, and how to protect
@@ -150,18 +154,19 @@ def chat_endpoint(request: Request, req: ChatRequest):
     if not req.messages:
         raise HTTPException(status_code=400, detail="messages must not be empty")
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-3.6-flash",
-            system_instruction=CHAT_SYSTEM_PROMPT,
+        # Gemini expects "model" rather than "assistant" for the AI turn.
+        contents = [
+            types.Content(
+                role="model" if m.role == "assistant" else "user",
+                parts=[types.Part(text=m.content)],
+            )
+            for m in req.messages
+        ]
+        response = _client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=CHAT_SYSTEM_PROMPT),
         )
-        # Gemini's chat history format expects "model" instead of "assistant" for the AI turn.
-        history = []
-        for m in req.messages[:-1]:
-            gemini_role = "model" if m.role == "assistant" else "user"
-            history.append({"role": gemini_role, "parts": [m.content]})
-
-        chat = model.start_chat(history=history)
-        response = chat.send_message(req.messages[-1].content)
         return {"reply": response.text}
     except HTTPException:
         raise
