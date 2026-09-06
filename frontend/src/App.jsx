@@ -17,6 +17,22 @@ const TABS = [
 
 const MAX_HISTORY = 10;
 
+const LEVEL_WORD = { high: 'HIGH RISK', medium: 'MEDIUM RISK', low: 'low risk' };
+
+function formatHistoryForExport(history) {
+  const lines = [`ScamShield \u2014 ${history.length} checks from this session`, ''];
+  [...history].reverse().forEach((entry, i) => {
+    const time = entry.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    lines.push(
+      `${i + 1}. [${time}] ${entry.label} \u2014 ${LEVEL_WORD[entry.result.risk_level] || entry.result.risk_level}`,
+      `   ${entry.result.explanation}`,
+      ''
+    );
+  });
+  lines.push('Checked with ScamShield: https://scamshield-cyan.vercel.app');
+  return lines.join('\n');
+}
+
 function levelIcon(level) {
   if (level === 'high') return '●';
   if (level === 'medium') return '●';
@@ -93,6 +109,19 @@ export default function App() {
   };
 
   const clearHistory = () => setHistory([]);
+
+  const [exportState, setExportState] = useState('idle');
+  const exportHistory = async () => {
+    const text = formatHistoryForExport(history);
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportState('copied');
+    } catch (e) {
+      const ok = window.prompt('Copy failed \u2014 select and copy this manually:', text);
+      setExportState(ok !== null ? 'copied' : 'failed');
+    }
+    setTimeout(() => setExportState('idle'), 2500);
+  };
 
   return (
     <div className="app-shell">
@@ -175,9 +204,16 @@ export default function App() {
                 <div className="history-panel">
                   <div className="history-header">
                     <span className="history-title">Recent checks (this session)</span>
-                    <button type="button" className="history-clear-btn" onClick={clearHistory}>
-                      Clear
-                    </button>
+                    <div className="history-header-actions">
+                      {history.length > 1 && (
+                        <button type="button" className="history-export-btn" onClick={exportHistory}>
+                          {exportState === 'copied' ? 'Copied!' : `Export all ${history.length}`}
+                        </button>
+                      )}
+                      <button type="button" className="history-clear-btn" onClick={clearHistory}>
+                        Clear
+                      </button>
+                    </div>
                   </div>
                   <ul className="history-list">
                     {history.map((entry) => (

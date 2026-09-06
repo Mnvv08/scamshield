@@ -1122,3 +1122,21 @@ button:focus-visible {
 }
 
 .status-pill--offline { color: var(--signal-high); }
+
+.history-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-export-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.history-export-btn:hover { text-decoration: underline; }
