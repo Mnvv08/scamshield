@@ -23,10 +23,20 @@ export default function MessageForm({ onSubmit, loading }) {
         id="msg"
         className="textarea"
         rows={6}
+        maxLength={2000}
         placeholder="e.g. Your KYC has expired, click here to verify..."
         value={text}
         onChange={(e) => setText(e.target.value)}
+        aria-describedby="msg-char-count"
       />
+      {text.length > 1500 && (
+        <p
+          id="msg-char-count"
+          className={`char-count ${text.length >= 2000 ? 'char-count--limit' : ''}`}
+        >
+          {text.length} / 2000 characters
+        </p>
+      )}
       <div className="sample-row">
         <span className="sample-label">Try:</span>
         {SAMPLES.map((s, i) => (

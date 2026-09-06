@@ -87,7 +87,7 @@ export default function TransactionForm({ onSubmit, loading }) {
         <div className="field">
           <label className="field-label">Amount (₹)</label>
           <input
-            type="number" min={1} className="input"
+            type="number" min={1} max={10_000_000} className="input"
             value={form.amount} onChange={(e) => update('amount', Number(e.target.value))}
           />
         </div>

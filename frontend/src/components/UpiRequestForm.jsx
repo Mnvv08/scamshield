@@ -51,7 +51,7 @@ export default function UpiRequestForm({ onSubmit, loading }) {
         <label className="field-label" htmlFor="upi-amount">Requested amount (₹)</label>
         <input
           id="upi-amount"
-          type="number" min={0} className="input"
+          type="number" min={0} max={10_000_000} className="input"
           value={form.requested_amount} onChange={(e) => update('requested_amount', Number(e.target.value))}
         />
       </div>
