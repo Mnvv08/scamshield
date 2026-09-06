@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { sendChatMessage } from '../api';
 
 const STARTER_PROMPTS = [
@@ -13,6 +13,7 @@ export default function ChatAssistant() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const scrollRef = useRef(null);
+  const inputId = useId();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -45,7 +46,14 @@ export default function ChatAssistant() {
 
   return (
     <div className="chat-panel">
-      <div className="chat-messages" ref={scrollRef}>
+      <div
+        className="chat-messages"
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Conversation with the ScamShield assistant"
+      >
         {messages.length === 0 && (
           <div className="chat-empty">
             <p>Ask about UPI scams, warning signs, or how a check result was reached.</p>
@@ -61,23 +69,36 @@ export default function ChatAssistant() {
 
         {messages.map((m, i) => (
           <div key={i} className={`chat-bubble chat-bubble--${m.role}`}>
+            <span className="sr-only">{m.role === 'user' ? 'You' : 'Assistant'}:</span>
             {m.content}
           </div>
         ))}
 
         {loading && (
-          <div className="chat-bubble chat-bubble--assistant chat-bubble--pending">
-            <span className="chat-dot" />
-            <span className="chat-dot" />
-            <span className="chat-dot" />
+          <div
+            className="chat-bubble chat-bubble--assistant chat-bubble--pending"
+            role="status"
+            aria-label="Assistant is typing"
+          >
+            <span className="chat-dot" aria-hidden="true" />
+            <span className="chat-dot" aria-hidden="true" />
+            <span className="chat-dot" aria-hidden="true" />
           </div>
         )}
 
-        {error && <div className="chat-error">{error}</div>}
+        {error && (
+          <div className="chat-error" role="alert">
+            {error}
+          </div>
+        )}
       </div>
 
       <form className="chat-input-row" onSubmit={handleSubmit}>
+        <label htmlFor={inputId} className="sr-only">
+          Ask the ScamShield assistant a question
+        </label>
         <input
+          id={inputId}
           className="input chat-input"
           placeholder="Ask about a scam pattern…"
           value={input}
