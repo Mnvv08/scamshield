@@ -30,24 +30,40 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [checkedLabel, setCheckedLabel] = useState('');
   const [history, setHistory] = useState([]);
+  const [requestId, setRequestId] = useState(0);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   const runCheck = async (fn, label) => {
+    const thisRequestId = requestId + 1;
+    setRequestId(thisRequestId);
     setLoading(true);
     setError(null);
     try {
       const res = await fn();
-      setResult(res);
-      setCheckedLabel(label);
-      setHistory((h) => [
-        { id: `${Date.now()}-${Math.random()}`, label, result: res, at: new Date() },
-        ...h,
-      ].slice(0, MAX_HISTORY));
+      setRequestId((current) => {
+        if (current === thisRequestId) {
+          setResult(res);
+          setCheckedLabel(label);
+          setHistory((h) => [
+            { id: `${Date.now()}-${Math.random()}`, label, result: res, at: new Date() },
+            ...h,
+          ].slice(0, MAX_HISTORY));
+        }
+        return current;
+      });
     } catch (e) {
-      setError(e.message);
-      setResult(null);
+      setRequestId((current) => {
+        if (current === thisRequestId) {
+          setError(e.message);
+          setResult(null);
+        }
+        return current;
+      });
     } finally {
-      setLoading(false);
+      setRequestId((current) => {
+        if (current === thisRequestId) setLoading(false);
+        return current;
+      });
     }
   };
 
@@ -69,6 +85,8 @@ export default function App() {
   };
 
   const revisitHistoryEntry = (entry) => {
+    setRequestId((id) => id + 1);
+    setLoading(false);
     setError(null);
     setResult(entry.result);
     setCheckedLabel(entry.label);
