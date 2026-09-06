@@ -150,3 +150,77 @@ class TestRateLimiting:
         # restore the shared module for any later tests
         monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
         importlib.reload(main)
+
+
+class TestPayeeHistoryEdgeCases:
+    """
+    Edge cases found by probing the endpoint directly, not by inspection:
+    the 24h cutoff is inclusive at exactly 1440 minutes, an unbounded
+    history array was accepted with no size limit, and amount had no
+    upper sanity ceiling. All three are exercised here.
+    """
+
+    def test_omitted_and_empty_history_behave_identically(self):
+        base = {"hour": 14, "amount": 500, "is_new_payee": False}
+        r1 = client.post("/predict/transaction", json=base).json()
+        r2 = client.post("/predict/transaction", json={**base, "recent_payee_txns": []}).json()
+        assert r1["risk_score"] == r2["risk_score"]
+
+    def test_24h_cutoff_is_inclusive_at_exactly_1440_minutes(self):
+        base = {"hour": 14, "amount": 500, "is_new_payee": False}
+        at_boundary = client.post("/predict/transaction", json={
+            **base, "recent_payee_txns": [{"amount": 180, "minutes_ago": 1440}],
+        }).json()
+        just_after = client.post("/predict/transaction", json={
+            **base, "recent_payee_txns": [{"amount": 180, "minutes_ago": 1441}],
+        }).json()
+        # This locks in current behaviour (1440 counts, 1441 doesn't) so a
+        # future change to the cutoff is a deliberate decision, not a silent
+        # off-by-one.
+        assert at_boundary["risk_score"] != just_after["risk_score"]
+
+    def test_rejects_negative_minutes_ago(self):
+        r = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 500,
+            "recent_payee_txns": [{"amount": 180, "minutes_ago": -5}],
+        })
+        assert r.status_code == 422
+
+    def test_rejects_zero_amount_in_history_item(self):
+        r = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 500,
+            "recent_payee_txns": [{"amount": 0, "minutes_ago": 10}],
+        })
+        assert r.status_code == 422
+
+    def test_rejects_history_item_missing_amount(self):
+        r = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 500,
+            "recent_payee_txns": [{"minutes_ago": 10}],
+        })
+        assert r.status_code == 422
+
+    def test_history_array_has_a_size_cap(self):
+        """
+        Without a cap, a caller can force the server to do unbounded work
+        on every request just by sending a longer array. 101 items should
+        be rejected; 100 should not.
+        """
+        oversized = [{"amount": 100, "minutes_ago": 10} for _ in range(101)]
+        at_limit = [{"amount": 100, "minutes_ago": 10} for _ in range(100)]
+        base = {"hour": 14, "amount": 500, "is_new_payee": False}
+
+        r_over = client.post("/predict/transaction", json={**base, "recent_payee_txns": oversized})
+        r_at = client.post("/predict/transaction", json={**base, "recent_payee_txns": at_limit})
+        assert r_over.status_code == 422
+        assert r_at.status_code != 422
+
+    def test_amount_has_a_sanity_ceiling(self):
+        r_huge = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 1e15, "is_new_payee": False,
+        })
+        r_reasonable = client.post("/predict/transaction", json={
+            "hour": 14, "amount": 50000, "is_new_payee": False,
+        })
+        assert r_huge.status_code == 422
+        assert r_reasonable.status_code != 422

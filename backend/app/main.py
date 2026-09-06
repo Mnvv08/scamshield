@@ -76,13 +76,13 @@ class MessageRequest(BaseModel):
 
 
 class RecentPayeeTxn(BaseModel):
-    amount: float = Field(..., gt=0)
+    amount: float = Field(..., gt=0, le=10_000_000)  # 1 crore ceiling; not a real UPI limit but rules out garbage input
     minutes_ago: float = Field(..., ge=0)
 
 
 class TransactionRequest(BaseModel):
     hour: int = Field(..., ge=0, le=23)
-    amount: float = Field(..., gt=0)
+    amount: float = Field(..., gt=0, le=10_000_000)  # 1 crore ceiling; not a real UPI limit but rules out garbage input
     is_new_payee: bool = False
     txns_last_hour: int = Field(0, ge=0)
     device_changed_recently: bool = False
@@ -93,7 +93,10 @@ class TransactionRequest(BaseModel):
     # Optional: recent transfers to the SAME payee, so the model can see
     # sequence-level patterns (e.g. salami slicing) that a single transaction
     # cannot reveal. The API stores nothing; the caller supplies what it knows.
-    recent_payee_txns: Optional[List[RecentPayeeTxn]] = None
+    # Capped at 100: an unbounded array is a cheap way to make the server
+    # do unbounded work on every request, and no real caller needs more
+    # than a day's worth of transfers to one payee.
+    recent_payee_txns: Optional[List[RecentPayeeTxn]] = Field(default=None, max_length=100)
     time_since_last_txn_min: float = Field(180, ge=0)
 
 
