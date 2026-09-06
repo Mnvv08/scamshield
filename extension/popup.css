@@ -207,3 +207,16 @@ main {
 .footer a:hover {
   color: var(--signal-medium);
 }
+
+.scan-page-btn {
+  margin-top: 12px;
+  padding: 8px 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2A404C;
+  color: #EAF0F2;
+  cursor: pointer;
+}
+.scan-page-btn:hover { border-color: #E3A73E; }
+.scan-page-btn:disabled { opacity: 0.6; cursor: default; }

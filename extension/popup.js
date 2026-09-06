@@ -83,3 +83,43 @@ chrome.storage.onChanged.addListener((changes) => {
 
 loadLastCheck();
 pingApi();
+
+
+// content.js is not auto-injected everywhere (activeTab only grants access
+// when the user acts), so link scanning happens on demand from here rather
+// than running on every page the user visits.
+el("scanPageBtn")?.addEventListener("click", async () => {
+  const btn = el("scanPageBtn");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Scanning...";
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
+    window.close(); // let the person go look at the highlighted links
+  } catch (e) {
+    btn.textContent = "Couldn't scan this page";
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
+  }
+});
+
+
+// content.js is not auto-injected everywhere (activeTab only grants access
+// when the user acts), so link scanning happens on demand from here rather
+// than running on every page the user visits.
+el("scanPageBtn")?.addEventListener("click", async () => {
+  const btn = el("scanPageBtn");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Scanning...";
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
+    window.close(); // let the person go look at the highlighted links
+  } catch (e) {
+    btn.textContent = "Couldn't scan this page";
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
+  }
+});
