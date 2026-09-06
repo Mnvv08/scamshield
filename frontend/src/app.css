@@ -470,12 +470,14 @@
   justify-content: center;
 }
 
+/* Chips inherit the risk colour from the panel rather than always being red:
+   a low-risk result showing red chips reads as a warning it isn't. */
 .rule-chip {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--signal-high);
-  background: var(--signal-high-bg);
-  border: 1px solid rgba(225, 91, 79, 0.35);
+  color: var(--level-fg, var(--signal-high));
+  background: var(--level-bg, var(--signal-high-bg));
+  border: 1px solid var(--level-border, rgba(225, 91, 79, 0.35));
   padding: 4px 8px;
   text-transform: lowercase;
 }
@@ -668,3 +670,131 @@
 .chat-input {
   flex: 1;
 }
+
+/* ---------------------------------------------------------------
+   Result panel: verdict, guidance, and level-aware colouring
+   --------------------------------------------------------------- */
+
+.result-panel--low {
+  --level-fg: var(--signal-safe);
+  --level-bg: var(--signal-safe-bg);
+  --level-border: rgba(79, 183, 132, 0.35);
+}
+.result-panel--medium {
+  --level-fg: var(--signal-medium);
+  --level-bg: var(--signal-medium-bg);
+  --level-border: rgba(227, 167, 62, 0.35);
+}
+.result-panel--high {
+  --level-fg: var(--signal-high);
+  --level-bg: var(--signal-high-bg);
+  --level-border: rgba(225, 91, 79, 0.35);
+}
+
+.result-panel--low,
+.result-panel--medium,
+.result-panel--high {
+  animation: result-in 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-panel--low,
+  .result-panel--medium,
+  .result-panel--high { animation: none; }
+}
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: -4px;
+}
+
+.verdict-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--level-fg);
+}
+
+.verdict-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 34ch;
+  line-height: 1.45;
+}
+
+.action-list {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-hairline-soft);
+  border-left: 3px solid var(--level-fg);
+  background: var(--bg-panel-raised);
+  padding: 14px 16px;
+}
+
+.action-list-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.action-list ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-list li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.action-list li::marker {
+  color: var(--level-fg);
+}
+
+/* Model numbers are for the curious, not the headline. Collapsed by default
+   so the verdict and the guidance carry the panel. */
+.result-meta-toggle {
+  width: 100%;
+  border-top: 1px solid var(--border-hairline-soft);
+  padding-top: 12px;
+}
+
+.result-meta-toggle summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 0.15s ease;
+}
+
+.result-meta-toggle summary:hover { color: var(--text-muted); }
+.result-meta-toggle summary::-webkit-details-marker { display: none; }
+
+.result-meta-toggle summary::before {
+  content: '+ ';
+  color: var(--level-fg);
+}
+.result-meta-toggle[open] summary::before { content: '\2212 '; }
+.result-meta-toggle[open] summary { margin-bottom: 10px; }
