@@ -1,7 +1,10 @@
 import os
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from dotenv import load_dotenv
@@ -23,6 +26,23 @@ app = FastAPI(
 # so the ScamShield browser extension can reach the API regardless of this setting.
 _origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
 allow_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",")]
+
+# Rate limiting. This API is public and /chat calls a paid third-party service,
+# so without limits anyone can run up the bill with a loop. CORS does not help:
+# it is enforced by browsers, and curl ignores it entirely.
+#
+# Limits are per client IP and held in memory, which is correct for a single
+# instance. Running more than one instance would need shared storage (Redis).
+# Disabled in the test suite: the tests deliberately make many rapid requests
+# to the same endpoint, which is exactly what the limiter exists to stop.
+_limits_enabled = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() != "false"
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["120/hour"],
+    enabled=_limits_enabled,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -96,7 +116,8 @@ def root():
 
 
 @app.post("/predict/message")
-def predict_message_endpoint(req: MessageRequest):
+@limiter.limit("30/minute")
+def predict_message_endpoint(request: Request, req: MessageRequest):
     try:
         return predict_message(req.text)
     except Exception as e:
@@ -104,7 +125,8 @@ def predict_message_endpoint(req: MessageRequest):
 
 
 @app.post("/predict/transaction")
-def predict_transaction_endpoint(req: TransactionRequest):
+@limiter.limit("30/minute")
+def predict_transaction_endpoint(request: Request, req: TransactionRequest):
     try:
         return predict_transaction(req.model_dump())
     except Exception as e:
@@ -112,7 +134,8 @@ def predict_transaction_endpoint(req: TransactionRequest):
 
 
 @app.post("/predict/upi-request")
-def predict_upi_request_endpoint(req: UpiRequestPayload):
+@limiter.limit("30/minute")
+def predict_upi_request_endpoint(request: Request, req: UpiRequestPayload):
     try:
         return predict_upi_request(req.model_dump())
     except Exception as e:
@@ -120,7 +143,8 @@ def predict_upi_request_endpoint(req: UpiRequestPayload):
 
 
 @app.post("/chat")
-def chat_endpoint(req: ChatRequest):
+@limiter.limit("10/minute;100/day")
+def chat_endpoint(request: Request, req: ChatRequest):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on the server.")
     if not req.messages:
