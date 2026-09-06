@@ -17,9 +17,16 @@ export default function RiskGauge({ score, level }) {
   const offset = circumference * (1 - pct);
   const color = LEVEL_COLOR[level] || 'var(--text-muted)';
 
+  const pctLabel = Math.round(pct * 100);
+
   return (
     <div className="risk-gauge">
-      <svg width="176" height="176" viewBox="0 0 176 176" style={{ filter: `drop-shadow(0 0 18px ${color}55)` }}>
+      <svg
+        width="176" height="176" viewBox="0 0 176 176"
+        style={{ filter: `drop-shadow(0 0 18px ${color}55)` }}
+        role="img"
+        aria-label={`Risk score ${pctLabel} out of 100, ${LEVEL_LABEL[level] || 'unknown risk'}`}
+      >
         <circle
           cx="88" cy="88" r={radius}
           fill="none"

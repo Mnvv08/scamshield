@@ -45,6 +45,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <a href="#tool" className="skip-link">Skip to fraud checker</a>
       <header className="topbar">
         <div className="topbar-brand">
           <span className="brand-mark" aria-hidden="true" />
@@ -61,11 +62,25 @@ export default function App() {
 
       <main className="main-grid" id="tool">
   <nav className="tab-rail">
-    {TABS.map((t) => (
+    {TABS.map((t, i) => (
       <button
         key={t.id}
+        role="tab"
+        id={`tab-${t.id}`}
+        aria-selected={activeTab === t.id}
+        aria-controls={`panel-${t.id}`}
+        tabIndex={activeTab === t.id ? 0 : -1}
         className={`tab-btn ${activeTab === t.id ? 'tab-btn--active' : ''}`}
         onClick={() => handleTabChange(t.id)}
+        onKeyDown={(e) => {
+          // Standard tab-list behaviour: arrow keys move focus and
+          // selection together, without needing Tab to step through each one.
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          e.preventDefault();
+          const next = (i + (e.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length;
+          handleTabChange(TABS[next].id);
+          document.getElementById(`tab-${TABS[next].id}`)?.focus();
+        }}
       >
         <span className="tab-btn-label">{t.label}</span>
         <span className="tab-btn-desc">{t.desc}</span>
@@ -107,7 +122,15 @@ export default function App() {
       </section>
 
       <section className="panel">
-        <ResultPanel loading={loading} result={result} error={error} checkedLabel={checkedLabel} />
+        <div
+  id={`panel-${activeTab}`}
+  role="region"
+  aria-labelledby={`tab-${activeTab}`}
+  aria-live="polite"
+  aria-atomic="true"
+>
+  <ResultPanel loading={loading} result={result} error={error} checkedLabel={checkedLabel} />
+</div>
       </section>
     </>
   )}
