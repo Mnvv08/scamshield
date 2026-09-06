@@ -1140,3 +1140,48 @@ button:focus-visible {
 }
 
 .history-export-btn:hover { text-decoration: underline; }
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mic-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.mic-btn--listening {
+  border-color: var(--signal-high);
+  color: var(--signal-high);
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 91, 79, 0.35); }
+  50% { box-shadow: 0 0 0 5px rgba(225, 91, 79, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic-btn--listening { animation: none; }
+}
+
+.mic-error {
+  font-size: 12px;
+  color: var(--signal-high);
+  margin: -4px 0 8px;
+}
