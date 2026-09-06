@@ -74,7 +74,7 @@ async function runCheckAndStore(text, tabId) {
   try {
     const result = await checkText(text);
     await chrome.storage.local.set({
-      lastCheck: { text, loading: false, result, error: null },
+      lastCheck: { text, loading: false, result, error: null, tabId },
     });
     if (tabId != null) {
       const level = result.risk_level;
@@ -84,7 +84,7 @@ async function runCheckAndStore(text, tabId) {
     }
   } catch (err) {
     await chrome.storage.local.set({
-      lastCheck: { text, loading: false, result: null, error: err.message },
+      lastCheck: { text, loading: false, result: null, error: err.message, tabId },
     });
     if (tabId != null) {
       chrome.action.setBadgeText({ text: "", tabId });

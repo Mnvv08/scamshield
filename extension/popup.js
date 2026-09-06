@@ -37,6 +37,18 @@ async function loadLastCheck() {
     showOnly("emptyState");
     return;
   }
+
+  let isStale = false;
+  if (lastCheck.tabId != null) {
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      isStale = activeTab?.id !== lastCheck.tabId;
+    } catch (e) {
+      /* tabs API unavailable - treat as not stale */
+    }
+  }
+  el("staleNotice").classList.toggle("hidden", !isStale);
+
   if (lastCheck.loading) {
     showOnly("loadingState");
   } else if (lastCheck.error) {

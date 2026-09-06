@@ -233,3 +233,12 @@ main {
 }
 .scan-page-btn:hover { border-color: #E3A73E; }
 .scan-page-btn:disabled { opacity: 0.6; cursor: default; }
+
+.stale-notice {
+  background: var(--signal-medium);
+  color: var(--bg-base);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  text-align: center;
+}
