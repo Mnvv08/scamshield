@@ -50,16 +50,39 @@ async function loadLastCheck() {
 
 async function pingApi() {
   const dot = el("statusDot");
+  dot.className = "status-dot checking";
+  dot.title = "Checking connection\u2026";
+
+  const withTimeout = (url, ms) =>
+    fetch(url, { signal: AbortSignal.timeout(ms) });
+
   try {
-    const res = await fetch(`${SCAMSHIELD_CONFIG.PROD_API}/`);
-    dot.className = res.ok ? "status-dot online" : "status-dot offline";
-  } catch (e) {
-    try {
-      const res = await fetch(`${SCAMSHIELD_CONFIG.DEV_API}/`);
-      dot.className = res.ok ? "status-dot online" : "status-dot offline";
-    } catch (e2) {
+    const start = Date.now();
+    const res = await withTimeout(`${SCAMSHIELD_CONFIG.PROD_API}/`, 8000);
+    const tookLong = Date.now() - start > 3000;
+    if (res.ok) {
+      dot.className = "status-dot online";
+      dot.title = tookLong
+        ? "Connected (server was waking up, now ready)"
+        : "Connected";
+    } else {
       dot.className = "status-dot offline";
+      dot.title = `Server responded with an error (${res.status})`;
     }
+    return;
+  } catch (e) {
+    /* fast failure vs. still-waking server look identical here; fall through */
+  }
+
+  dot.className = "status-dot checking";
+  dot.title = "Server may still be waking up\u2026 trying local backend";
+  try {
+    const res = await withTimeout(`${SCAMSHIELD_CONFIG.DEV_API}/`, 3000);
+    dot.className = res.ok ? "status-dot online" : "status-dot offline";
+    dot.title = res.ok ? "Connected (local backend)" : `Local backend error (${res.status})`;
+  } catch (e2) {
+    dot.className = "status-dot offline";
+    dot.title = "Can't reach the server. It may still be waking up (can take up to a minute) or you may be offline.";
   }
 }
 
