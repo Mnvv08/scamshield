@@ -1103,3 +1103,22 @@ button:focus-visible {
 }
 
 .char-count--limit { color: var(--signal-medium); }
+
+.status-dot--online {
+  background: var(--signal-safe);
+  box-shadow: 0 0 0 0 rgba(79, 183, 132, 0.6);
+}
+
+.status-dot--offline {
+  background: var(--signal-high);
+  animation: none;
+  box-shadow: none;
+}
+
+.status-dot--checking {
+  background: var(--text-faint);
+  animation: status-pulse 1.2s ease-in-out infinite;
+  box-shadow: none;
+}
+
+.status-pill--offline { color: var(--signal-high); }

@@ -54,3 +54,12 @@ export const checkMessage = (text) => post('/predict/message', { text });
 export const checkTransaction = (payload) => post('/predict/transaction', payload);
 export const checkUpiRequest = (payload) => post('/predict/upi-request', payload);
 export const sendChatMessage = (messages) => post('/chat', { messages });
+
+export async function pingHealth(timeoutMs = 4000) {
+  try {
+    const res = await fetch(`${API_BASE}/`, { signal: AbortSignal.timeout(timeoutMs) });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}

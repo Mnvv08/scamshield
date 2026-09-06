@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Hero from './components/Hero';
 import MessageForm from './components/MessageForm';
 import TransactionForm from './components/TransactionForm';
 import UpiRequestForm from './components/UpiRequestForm';
 import ResultPanel from './components/ResultPanel';
-import { checkMessage, checkTransaction, checkUpiRequest } from './api';
+import { checkMessage, checkTransaction, checkUpiRequest, pingHealth } from './api';
 import './app.css';
 import ChatAssistant from './components/ChatAssistant';
 
@@ -30,6 +30,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [checkedLabel, setCheckedLabel] = useState('');
   const [history, setHistory] = useState([]);
+  const [backendStatus, setBackendStatus] = useState('checking');
 
   const runCheck = async (fn, label) => {
     setLoading(true);
@@ -49,6 +50,17 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const ok = await pingHealth();
+      if (!cancelled) setBackendStatus(ok ? 'online' : 'offline');
+    };
+    check();
+    const id = setInterval(check, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const handleTabChange = (id) => {
     setActiveTab(id);
@@ -73,9 +85,11 @@ export default function App() {
           <span className="brand-name">ScamShield</span>
         </div>
         <p className="topbar-tagline">Fraud detection for UPI &amp; digital payments</p>
-        <div className="status-pill">
-          <span className="status-dot" />
-          Models online
+        <div className={`status-pill status-pill--${backendStatus}`}>
+          <span className={`status-dot status-dot--${backendStatus}`} aria-hidden="true" />
+          {backendStatus === 'online' && 'Models online'}
+          {backendStatus === 'offline' && 'Server unreachable'}
+          {backendStatus === 'checking' && 'Checking…'}
         </div>
       </header>
 
