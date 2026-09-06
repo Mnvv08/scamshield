@@ -15,24 +15,6 @@ const TABS = [
   { id: 'assistant', label: 'Assistant', desc: 'Ask about scams' },
 ];
 
-const NETWORK_ERROR_STRINGS = [
-  'failed to fetch',
-  'networkerror',
-  'load failed',
-  'network request failed',
-];
-
-function friendlyErrorMessage(err) {
-  const raw = (err?.message || '').toLowerCase();
-  const looksLikeNetworkFailure = NETWORK_ERROR_STRINGS.some((s) => raw.includes(s));
-  if (looksLikeNetworkFailure) {
-    return "Couldn't reach the server. If you haven't used ScamShield in a while, "
-      + "it may be waking up — this can take up to a minute on the first try. "
-      + 'Check your connection and try again.';
-  }
-  return err.message;
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('message');
   const [result, setResult] = useState(null);
@@ -48,7 +30,7 @@ export default function App() {
       setResult(res);
       setCheckedLabel(label);
     } catch (e) {
-      setError(friendlyErrorMessage(e));
+      setError(e.message);
       setResult(null);
     } finally {
       setLoading(false);

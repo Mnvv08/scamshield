@@ -1,13 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Turns a FastAPI/slowapi error body into a plain, displayable message.
-// Three shapes actually occur, and the previous code only handled one:
-//   - normal errors:      { detail: "some string" }
-//   - validation errors:  { detail: [{ msg, loc, type, ... }, ...] }  (Pydantic)
-//   - rate limit errors:  { error: "Rate limit exceeded: ..." }        (slowapi)
-// Passing the array straight into `new Error()` stringifies it as
-// "[object Object]", which is what a validation failure looked like
-// before this fix.
 function extractErrorMessage(body, status) {
   if (typeof body.detail === 'string') return body.detail;
   if (Array.isArray(body.detail) && body.detail.length) {
@@ -23,12 +15,34 @@ function extractErrorMessage(body, status) {
   return `Request failed (${status})`;
 }
 
+const NETWORK_ERROR_STRINGS = [
+  'failed to fetch',
+  'networkerror',
+  'load failed',
+  'network request failed',
+];
+
+function isNetworkFailure(err) {
+  const raw = (err?.message || '').toLowerCase();
+  return NETWORK_ERROR_STRINGS.some((s) => raw.includes(s));
+}
+
+const FRIENDLY_NETWORK_MESSAGE =
+  "Couldn't reach the server. If you haven't used ScamShield in a while, " +
+  'it may be waking up — this can take up to a minute on the first try. ' +
+  'Check your connection and try again.';
+
 async function post(path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new Error(isNetworkFailure(err) ? FRIENDLY_NETWORK_MESSAGE : err.message);
+  }
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
     throw new Error(extractErrorMessage(errBody, res.status));
