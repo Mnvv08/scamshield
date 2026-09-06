@@ -121,3 +121,32 @@ class TestPayeeHistory:
             "recent_payee_txns": [{"amount": 200, "minutes_ago": i * 100} for i in range(1, 5)],
         }).json()
         assert "far larger than usual" in r["explanation"]
+
+
+class TestRateLimiting:
+    """
+    The API is public and /chat calls a paid service, so it is rate limited per
+    IP. Limits are disabled for the rest of the suite (see conftest.py); this
+    test re-enables them on its own app instance.
+    """
+
+    def test_limit_returns_429_after_threshold(self, monkeypatch):
+        import importlib
+        import os
+
+        monkeypatch.setenv("RATE_LIMIT_ENABLED", "true")
+        import app.main as main
+        importlib.reload(main)
+        c = TestClient(main.app)
+
+        codes = [
+            c.post("/predict/message", json={"text": "a test message"}).status_code
+            for _ in range(35)
+        ]
+        assert 200 in codes, "healthy requests should still succeed"
+        assert 429 in codes, "limiter should reject once the threshold is passed"
+        assert codes.index(429) > 25, "limit should not fire too early"
+
+        # restore the shared module for any later tests
+        monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
+        importlib.reload(main)
