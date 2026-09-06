@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import RiskGauge from './RiskGauge';
 
 // The API runs on a free tier that sleeps after inactivity, so the first
@@ -87,6 +87,44 @@ function parseReasonsFromExplanation(explanation) {
   return match[1].split(', ').filter(Boolean);
 }
 
+function formatResultForSharing(result, checkedLabel, verdict, actions) {
+  const pct = Math.round(result.risk_score * 100);
+  const lines = [
+    `ScamShield check: ${checkedLabel || 'Result'}`,
+    `Verdict: ${verdict.title} (risk score ${pct}/100)`,
+    '',
+    result.explanation,
+  ];
+  if (actions?.length) {
+    lines.push('', 'What to do:');
+    actions.forEach((a) => lines.push(`- ${a}`));
+  }
+  lines.push('', 'Checked with ScamShield: https://scamshield-cyan.vercel.app');
+  return lines.join('\n');
+}
+
+function ShareButton({ result, checkedLabel, verdict, actions }) {
+  const [state, setState] = useState('idle');
+
+  const handleShare = useCallback(async () => {
+    const text = formatResultForSharing(result, checkedLabel, verdict, actions);
+    try {
+      await navigator.clipboard.writeText(text);
+      setState('copied');
+    } catch (e) {
+      const ok = window.prompt('Copy failed - select and copy this manually:', text);
+      setState(ok !== null ? 'copied' : 'failed');
+    }
+    setTimeout(() => setState('idle'), 2500);
+  }, [result, checkedLabel, verdict, actions]);
+
+  return (
+    <button type="button" className="share-btn" onClick={handleShare}>
+      {state === 'copied' ? 'Copied \u2014 paste it to warn someone' : 'Copy result to share'}
+    </button>
+  );
+}
+
 export default function ResultPanel({ result, error, checkedLabel, loading }) {
   if (loading) return <LoadingState />;
 
@@ -158,6 +196,8 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
           {actions.map((a) => <li key={a}>{a}</li>)}
         </ul>
       </div>
+
+      <ShareButton result={result} checkedLabel={checkedLabel} verdict={verdict} actions={actions} />
 
       <details className="result-meta-toggle">
         <summary>Model details</summary>

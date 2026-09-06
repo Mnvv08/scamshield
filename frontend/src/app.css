@@ -1079,3 +1079,18 @@ button:focus-visible {
   color: var(--text-faint);
   line-height: 1.4;
 }
+
+.share-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--level-fg, var(--border-hairline));
+  color: var(--level-fg, var(--text-primary));
+  font-size: 13px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.share-btn:hover { background: var(--level-bg, var(--bg-panel-raised)); }
