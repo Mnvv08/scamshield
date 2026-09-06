@@ -1,4 +1,32 @@
+import { useEffect, useState } from 'react';
 import RiskGauge from './RiskGauge';
+
+// The API runs on a free tier that sleeps after inactivity, so the first
+// request can take ~50s. Silence for that long reads as a broken app, so the
+// wait explains itself once it stops looking instant.
+function LoadingState() {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const cold = elapsed >= 4;
+  return (
+    <div className="result-panel result-panel--empty">
+      <div className="loading-state">
+        <div className="loading-ring" aria-hidden="true" />
+        <p className="loading-title">{cold ? 'Waking the server' : 'Analysing'}</p>
+        <p className="loading-sub">
+          {cold
+            ? 'The API sleeps when idle, so the first check can take up to a minute. Later checks are instant.'
+            : 'Running the classifier and rule checks.'}
+        </p>
+        {cold && <p className="loading-timer">{elapsed}s</p>}
+      </div>
+    </div>
+  );
+}
 
 const VERDICT = {
   low: { title: 'Looks safe', sub: 'Nothing here matches known scam patterns.' },
@@ -52,7 +80,9 @@ function VerdictIcon({ level }) {
   );
 }
 
-export default function ResultPanel({ result, error, checkedLabel }) {
+export default function ResultPanel({ result, error, checkedLabel, loading }) {
+  if (loading) return <LoadingState />;
+
   if (error) {
     return (
       <div className="result-panel result-panel--empty">

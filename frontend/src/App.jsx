@@ -107,7 +107,7 @@ export default function App() {
       </section>
 
       <section className="panel">
-        <ResultPanel result={result} error={error} checkedLabel={checkedLabel} />
+        <ResultPanel loading={loading} result={result} error={error} checkedLabel={checkedLabel} />
       </section>
     </>
   )}
