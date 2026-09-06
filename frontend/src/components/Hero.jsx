@@ -1,8 +1,8 @@
 const STATS = [
   { value: '98%', label: 'accuracy on held-out SMS test set' },
   { value: '3', label: 'input types covered' },
-  { value: '5,596', label: 'labeled training rows' },
-  { value: 'local', label: 'inference, no external API' },
+  { value: '6,840', label: 'real, deduplicated training messages' },
+  { value: '2 real', label: 'public datasets, no scraped/synthetic text data' },
 ];
 
 export default function Hero() {
@@ -24,8 +24,8 @@ export default function Hero() {
         </h1>
         <p className="hero-subtitle">
           A fine-tuned text classifier runs next to a hand-written rule engine, and their
-          scores get merged into one risk read. Trained on the UCI SMS Spam Collection,
-          extended with UPI-scam phrasing documented from real reports.
+          scores get merged into one risk read. Trained on two real public SMS datasets
+          plus UPI-scam phrasing documented from real reports.
         </p>
 
         <div className="hero-stats">
