@@ -10,6 +10,8 @@ const SUSPICIOUS_URL_PATTERNS = [
   /kyc-?verify/i, /-verify\d*\./i, /secure-?update/i, /account-?block/i,
 ];
 
+const MAX_BADGES_PER_SCAN = 200;
+
 function isSuspiciousUrl(href) {
   return SUSPICIOUS_URL_PATTERNS.some((p) => p.test(href));
 }
@@ -22,34 +24,43 @@ function makeBadge(link) {
   badge.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const text = `${link.textContent.trim()} ${link.href}`.trim();
+    const raw = `${link.textContent.trim()} ${link.href}`.trim();
+    const text = raw.length > 2000 ? raw.slice(0, 2000) : raw;
     chrome.runtime.sendMessage({ type: "SCAMSHIELD_CHECK_TEXT", text });
   });
   return badge;
 }
 
+let badgesThisPage = 0;
+
 function scanLinks(root) {
+  if (badgesThisPage >= MAX_BADGES_PER_SCAN) return;
   const links = root.querySelectorAll("a[href]:not([data-scamshield-scanned])");
-  links.forEach((link) => {
+  for (const link of links) {
     link.setAttribute("data-scamshield-scanned", "1");
     try {
       if (isSuspiciousUrl(link.href)) {
         link.insertAdjacentElement("afterend", makeBadge(link));
+        badgesThisPage++;
+        if (badgesThisPage >= MAX_BADGES_PER_SCAN) break;
       }
     } catch (e) {
       /* malformed href, skip */
     }
-  });
+  }
 }
 
-// Initial scan, then watch for content added dynamically (SPAs, infinite scroll, webmail, etc.)
 scanLinks(document.body);
+
+let scanTimer = null;
 const observer = new MutationObserver((mutations) => {
-  for (const m of mutations) {
-    if (m.addedNodes.length) {
-      scanLinks(document.body);
-      break;
-    }
+  if (badgesThisPage >= MAX_BADGES_PER_SCAN) {
+    observer.disconnect();
+    return;
   }
+  const hasAddedNodes = mutations.some((m) => m.addedNodes.length > 0);
+  if (!hasAddedNodes) return;
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(() => scanLinks(document.body), 300);
 });
 observer.observe(document.body, { childList: true, subtree: true });
