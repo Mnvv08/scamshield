@@ -29,40 +29,51 @@ export default function UpiRequestForm({ onSubmit, loading }) {
   return (
     <form onSubmit={handleSubmit} className="form">
       <div className="field">
-        <label className="field-label">Payee UPI ID (VPA)</label>
+        <label className="field-label" htmlFor="upi-vpa">Payee UPI ID (VPA)</label>
         <input
+          id="upi-vpa"
           type="text" className="input"
           value={form.payee_vpa} onChange={(e) => update('payee_vpa', e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label className="field-label">Request note / message</label>
+        <label className="field-label" htmlFor="upi-note">Request note / message</label>
         <input
+          id="upi-note"
           type="text" className="input"
-          placeholder="e.g. for lunch, claim your reward..."
+          placeholder="e.g. for lunch, claim your reward…"
           value={form.note} onChange={(e) => update('note', e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label className="field-label">Requested amount (₹)</label>
+        <label className="field-label" htmlFor="upi-amount">Requested amount (₹)</label>
         <input
+          id="upi-amount"
           type="number" min={0} className="input"
           value={form.requested_amount} onChange={(e) => update('requested_amount', Number(e.target.value))}
         />
       </div>
 
       <div className="checkbox-row">
-        <label className="checkbox-field">
+        <label className="checkbox-field" htmlFor="upi-collect">
           <input
+            id="upi-collect"
             type="checkbox" checked={form.is_collect_request}
             onChange={(e) => update('is_collect_request', e.target.checked)}
+            aria-describedby="upi-collect-hint"
           />
           This is a "collect" request (you'd be sending money)
         </label>
-        <label className="checkbox-field">
+        <span id="upi-collect-hint" className="sr-only">
+          A collect request means accepting it sends money from your account,
+          not receives it. This is the core mechanism most UPI scams rely on.
+        </span>
+
+        <label className="checkbox-field" htmlFor="upi-verified">
           <input
+            id="upi-verified"
             type="checkbox" checked={form.payee_verified}
             onChange={(e) => update('payee_verified', e.target.checked)}
           />
