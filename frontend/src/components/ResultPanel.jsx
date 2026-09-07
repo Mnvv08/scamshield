@@ -208,10 +208,12 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
               <span className="mono">{(result.ml_probability * 100).toFixed(1)}%</span>
             </div>
           )}
-          <div className="meta-row">
-            <span>Combined risk score</span>
-            <span className="mono">{result.risk_score.toFixed(3)}</span>
-          </div>
+          {typeof result.risk_score === 'number' && (
+            <div className="meta-row">
+              <span>Combined risk score</span>
+              <span className="mono">{result.risk_score.toFixed(3)}</span>
+            </div>
+          )}
           {'flagged_anomaly' in result && (
             <div className="meta-row">
               <span>Anomaly detector</span>

@@ -11,7 +11,8 @@ const LEVEL_LABEL = {
 };
 
 export default function RiskGauge({ score, level }) {
-  const pct = Math.max(0, Math.min(1, score));
+  const numericScore = typeof score === 'number' && !Number.isNaN(score) ? score : 0;
+  const pct = Math.max(0, Math.min(1, numericScore));
   const radius = 72;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - pct);
