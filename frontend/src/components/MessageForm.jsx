@@ -85,7 +85,10 @@ export default function MessageForm({ onSubmit, loading }) {
             type="button"
             key={i}
             className="sample-chip"
-            onClick={() => setText(s)}
+            onClick={() => {
+              if (listening) stop();
+              setText(s);
+            }}
           >
             {s.length > 34 ? s.slice(0, 34) + '…' : s}
           </button>
