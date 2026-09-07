@@ -5,6 +5,9 @@
 // this part. Clicking a flagged badge sends just that link's text to the
 // real backend for a full ML + rules check, same as the right-click menu.
 
+// Kept intentionally in sync with backend/app/ml/rules.py's
+// SUSPICIOUS_URL_PATTERNS (same patterns, Python regex syntax). If you add
+// a pattern here, add it there too in the same change.
 const SUSPICIOUS_URL_PATTERNS = [
   /bit\.ly/i, /tinyurl/i, /\.tk(\/|$)/i, /\.xyz(\/|$)/i, /\.top(\/|$)/i,
   /kyc-?verify/i, /-verify\d*\./i, /secure-?update/i, /account-?block/i,

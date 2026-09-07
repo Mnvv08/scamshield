@@ -10,9 +10,15 @@ without retraining a model when a new scam pattern starts trending.
 
 import re
 
+# Kept intentionally in sync with extension/content.js's SUSPICIOUS_URL_PATTERNS
+# (same patterns, JS regex syntax). Different language, different file, no
+# shared source of truth - "account-?block" was found here missing from this
+# list despite being in the extension's for some time, causing the extension's
+# local badge and this endpoint to disagree on the exact same URL. If you add
+# a pattern to one, add it to the other in the same change.
 SUSPICIOUS_URL_PATTERNS = [
     r"bit\.ly", r"tinyurl", r"\.tk\b", r"\.xyz\b", r"\.top\b",
-    r"kyc-?verify", r"-verify\d*\.", r"secure-?update",
+    r"kyc-?verify", r"-verify\d*\.", r"secure-?update", r"account-?block",
 ]
 
 URGENCY_PHRASES = [
