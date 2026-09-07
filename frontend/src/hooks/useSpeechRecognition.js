@@ -12,6 +12,11 @@ export function useSpeechRecognition(onResult) {
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
 
+  const onResultRef = useRef(onResult);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+
   useEffect(() => {
     if (!SPEECH_RECOGNITION_SUPPORTED) return;
 
@@ -25,7 +30,7 @@ export function useSpeechRecognition(onResult) {
         .map((r) => r[0]?.transcript || '')
         .join(' ')
         .trim();
-      if (transcript) onResult(transcript);
+      if (transcript) onResultRef.current(transcript);
     };
 
     recognition.onerror = (event) => {
@@ -43,7 +48,7 @@ export function useSpeechRecognition(onResult) {
 
     recognitionRef.current = recognition;
     return () => recognition.abort();
-  }, [onResult]);
+  }, []);
 
   const start = useCallback(() => {
     if (!recognitionRef.current || listening) return;
