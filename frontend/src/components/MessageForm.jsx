@@ -53,6 +53,7 @@ export default function MessageForm({ onSubmit, loading }) {
             aria-pressed={listening}
             aria-label={listening ? 'Stop voice input' : 'Start voice input'}
             title={listening ? 'Listening… click to stop' : 'Speak the message instead of typing'}
+            disabled={loading}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"

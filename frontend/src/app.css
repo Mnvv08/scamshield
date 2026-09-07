@@ -1195,6 +1195,11 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
+.mic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .mic-btn--compact:disabled {
   opacity: 0.5;
   cursor: not-allowed;
