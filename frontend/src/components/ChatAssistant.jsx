@@ -16,12 +16,23 @@ export default function ChatAssistant() {
   const scrollRef = useRef(null);
   const inputId = useId();
 
+  const [lastCaptured, setLastCaptured] = useState('');
+
   const handleSpeechResult = useCallback((transcript) => {
     setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    setLastCaptured(transcript);
   }, []);
 
   const { listening, error: speechError, start, stop, supported: micSupported } =
     useSpeechRecognition(handleSpeechResult);
+
+  const micLiveAnnouncement = listening
+    ? 'Listening for your question'
+    : speechError
+    ? speechError
+    : lastCaptured
+    ? `Captured: ${lastCaptured}`
+    : '';
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -101,6 +112,7 @@ export default function ChatAssistant() {
         )}
       </div>
 
+      <p className="sr-only" role="status" aria-live="polite">{micLiveAnnouncement}</p>
       {speechError && <p className="mic-error" role="alert">{speechError}</p>}
       <form className="chat-input-row" onSubmit={handleSubmit}>
         <label htmlFor={inputId} className="sr-only">

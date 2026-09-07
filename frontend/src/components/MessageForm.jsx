@@ -10,12 +10,23 @@ const SAMPLES = [
 export default function MessageForm({ onSubmit, loading }) {
   const [text, setText] = useState('');
 
+  const [lastCaptured, setLastCaptured] = useState('');
+
   const handleSpeechResult = useCallback((transcript) => {
     setText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    setLastCaptured(transcript);
   }, []);
 
   const { listening, error: speechError, start, stop, supported } =
     useSpeechRecognition(handleSpeechResult);
+
+  const liveAnnouncement = listening
+    ? 'Listening for your message'
+    : speechError
+    ? speechError
+    : lastCaptured
+    ? `Captured: ${lastCaptured}`
+    : '';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -24,6 +35,7 @@ export default function MessageForm({ onSubmit, loading }) {
 
   return (
     <form onSubmit={handleSubmit} className="form">
+      <p className="sr-only" role="status" aria-live="polite">{liveAnnouncement}</p>
       <div className="field-label-row">
         <label className="field-label" htmlFor="msg">
           Paste a message, SMS, or WhatsApp text
