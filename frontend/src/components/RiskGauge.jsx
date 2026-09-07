@@ -43,7 +43,7 @@ export default function RiskGauge({ score, level }) {
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           transform="rotate(-90 88 88)"
-          style={{ transition: 'stroke-dashoffset 0.6s ease, stroke 0.3s ease' }}
+          className="gauge-fill"
         />
         <text x="88" y="82" textAnchor="middle" className="gauge-score" fill="var(--text-primary)">
           {Math.round(pct * 100)}

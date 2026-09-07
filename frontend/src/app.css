@@ -1204,3 +1204,11 @@ button:focus-visible {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.gauge-fill {
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-fill { transition: none; }
+}
