@@ -164,8 +164,15 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
   const verdict = VERDICT[level] || VERDICT.low;
   const actions = ACTIONS[level] || ACTIONS.low;
 
+  // Keying on risk_score alone risked a collision: two genuinely different
+  // checks can round to the identical 3-decimal score (e.g. both landing on
+  // 0.605), in which case React would reuse the same ShareButton instance
+  // rather than remount it - leaving a stale "Copied!" confirmation showing
+  // on a result that was never actually copied, after revisiting a
+  // different history entry. The explanation text is effectively unique per
+  // distinct result, so keying on both together is the practical fix.
   return (
-    <div className={`result-panel result-panel--${level}`} key={result.risk_score}>
+    <div className={`result-panel result-panel--${level}`} key={`${result.risk_score}-${result.explanation}`}>
       <div className="result-header">
         <span className="result-eyebrow">{checkedLabel}</span>
       </div>
