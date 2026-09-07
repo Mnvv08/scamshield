@@ -12,8 +12,13 @@ export default function MessageForm({ onSubmit, loading }) {
 
   const [lastCaptured, setLastCaptured] = useState('');
 
+  const MAX_MESSAGE_LENGTH = 2000;
+
   const handleSpeechResult = useCallback((transcript) => {
-    setText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    setText((prev) => {
+      const next = prev ? `${prev} ${transcript}` : transcript;
+      return next.length > MAX_MESSAGE_LENGTH ? next.slice(0, MAX_MESSAGE_LENGTH) : next;
+    });
     setLastCaptured(transcript);
   }, []);
 
