@@ -113,12 +113,20 @@ export default function TransactionForm({ onSubmit, loading }) {
 
       <div className="field-row">
         <div className="field">
-          <label className="field-label">Amount vs. this payee's usual (ratio)</label>
+          <label className="field-label" htmlFor="txn-avg-ratio">
+            Your own estimate: amount vs. this payee's usual (ratio)
+          </label>
           <input
+            id="txn-avg-ratio"
             type="number" min={0} step={0.1} className="input"
             value={form.amount_to_avg_ratio}
             onChange={(e) => update('amount_to_avg_ratio', Number(e.target.value))}
+            aria-describedby="txn-avg-ratio-hint"
           />
+          <p id="txn-avg-ratio-hint" className="field-hint">
+            A rough guess if you don't know the exact history. Leave at 1.0 if you're
+            filling in "Recent transfers" below — that already covers this precisely.
+          </p>
         </div>
         <div className="field">
           <label className="field-label">Recent failed PIN/OTP attempts</label>
