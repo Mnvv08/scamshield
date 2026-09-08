@@ -32,7 +32,13 @@ function renderError(message) {
 }
 
 async function loadLastCheck() {
-  const { lastCheck } = await chrome.storage.local.get("lastCheck");
+  let lastCheck;
+  try {
+    ({ lastCheck } = await chrome.storage.local.get("lastCheck"));
+  } catch (e) {
+    showOnly("emptyState");
+    return;
+  }
   if (!lastCheck) {
     showOnly("emptyState");
     return;
