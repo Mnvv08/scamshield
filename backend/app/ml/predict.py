@@ -22,6 +22,22 @@ def _load(name):
     return _cache[name]
 
 
+MODEL_NAMES = [
+    "text_classifier", "text_vectorizer",
+    "transaction_model", "transaction_rf_model",
+    "transaction_scaler", "transaction_features",
+]
+
+
+def check_models_loadable():
+    for name in MODEL_NAMES:
+        try:
+            _load(name)
+        except Exception as e:
+            return False, f"{name}: {e}"
+    return True, None
+
+
 def _risk_bucket(score: float) -> str:
     if score >= 0.7:
         return "high"

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from app.ml.predict import predict_message, predict_transaction, predict_upi_request
+from app.ml.predict import predict_message, predict_transaction, predict_upi_request, check_models_loadable
 
 load_dotenv()
 
@@ -130,6 +130,14 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def root():
     return {"status": "ok", "service": "ScamShield API"}
+
+
+@app.get("/health")
+def health():
+    ok, error = check_models_loadable()
+    if not ok:
+        raise HTTPException(status_code=503, detail=f"Model artifacts not loadable: {error}")
+    return {"status": "ok", "models": "loaded"}
 
 
 @app.post("/predict/message")
