@@ -1,5 +1,14 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+  console.error(
+    '[ScamShield] VITE_API_URL was not set at build time - falling back to ' +
+    'http://localhost:8000, which does not exist in production. Every check ' +
+    'will fail. Set VITE_API_URL in this deployment\'s environment variables ' +
+    'and rebuild.'
+  );
+}
+
 function extractErrorMessage(body, status) {
   if (typeof body.detail === 'string') return body.detail;
   if (Array.isArray(body.detail) && body.detail.length) {
