@@ -64,17 +64,31 @@ async function checkText(text) {
   return res.json();
 }
 
+async function safeStorageSet(value) {
+  try {
+    await chrome.storage.local.set(value);
+    return true;
+  } catch (e) {
+    console.error("ScamShield: storage.local.set failed", e);
+    return false;
+  }
+}
+
 async function runCheckAndStore(text, tabId) {
-  await chrome.storage.local.set({
-    lastCheck: { text, loading: true, result: null, error: null },
+  const storedText = text.length > 2000 ? text.slice(0, 2000) : text;
+
+  const startedOk = await safeStorageSet({
+    lastCheck: { text: storedText, loading: true, result: null, error: null },
   });
+  if (!startedOk) return;
+
   if (tabId != null) {
     chrome.action.setBadgeText({ text: "", tabId });
   }
   try {
     const result = await checkText(text);
-    await chrome.storage.local.set({
-      lastCheck: { text, loading: false, result, error: null, tabId },
+    await safeStorageSet({
+      lastCheck: { text: storedText, loading: false, result, error: null, tabId },
     });
     if (tabId != null) {
       const level = result.risk_level;
@@ -83,8 +97,8 @@ async function runCheckAndStore(text, tabId) {
       chrome.action.setBadgeText({ text: String(Math.round(result.risk_score * 100)), tabId });
     }
   } catch (err) {
-    await chrome.storage.local.set({
-      lastCheck: { text, loading: false, result: null, error: err.message, tabId },
+    await safeStorageSet({
+      lastCheck: { text: storedText, loading: false, result: null, error: err.message, tabId },
     });
     if (tabId != null) {
       chrome.action.setBadgeText({ text: "", tabId });
