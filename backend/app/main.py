@@ -25,7 +25,8 @@ app = FastAPI(
 # (comma-separated for multiple), e.g. "https://scamshield.vercel.app"
 # chrome-extension:// origins are always allowed separately (via allow_origin_regex)
 # so the ScamShield browser extension can reach the API regardless of this setting.
-_origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
+_DEFAULT_ORIGINS = "https://scamshield-cyan.vercel.app,http://localhost:5173"
+_origins_env = os.environ.get("ALLOWED_ORIGINS", _DEFAULT_ORIGINS)
 allow_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",")]
 
 # Rate limiting. This API is public and /chat calls a paid third-party service,
