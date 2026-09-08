@@ -158,6 +158,30 @@ Open `http://localhost:5173`.
 Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a plain-language
 `explanation`.
 
+### Transaction model inputs
+
+`/predict/transaction` uses 13 features. The first 8 are supplied directly on the request;
+the last 3 are derived server-side from an optional `recent_payee_txns` list
+(`[{amount, minutes_ago}, ...]`) and exist specifically to catch patterns spread across
+several transactions, like many small transfers to one payee, that a single transaction
+looked at in isolation can't reveal.
+
+| Feature | Source | Notes |
+|---|---|---|
+| `hour` | request | 0–23 |
+| `is_weekend` | request | Weak signal in practice — see feature importances below |
+| `amount` | request | ₹, capped at 1 crore server-side |
+| `is_new_payee` | request | |
+| `txns_last_hour` | request | |
+| `device_changed_recently` | request | |
+| `payee_risk_score` | request | 0–1 |
+| `time_since_last_txn_min` | request | Strongest single predictor (0.24 importance) |
+| `amount_to_avg_ratio` | request | The caller's own estimate — a rough fallback when no payee history is supplied |
+| `recent_failed_attempts` | request | Failed PIN/OTP attempts |
+| `payee_txn_count_24h` | derived from `recent_payee_txns` | |
+| `payee_total_24h` | derived from `recent_payee_txns` | |
+| `amount_to_payee_avg_ratio` | derived from `recent_payee_txns` | Supersedes `amount_to_avg_ratio` in practice once real history is supplied |
+
 ## Model performance (on held-out test data)
 
 - **Text classifier**: 98% accuracy, 95% F1 on the scam class, 95% mean 5-fold CV F1
