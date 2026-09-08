@@ -124,8 +124,8 @@ export default function TransactionForm({ onSubmit, loading }) {
             aria-describedby="txn-avg-ratio-hint"
           />
           <p id="txn-avg-ratio-hint" className="field-hint">
-            A rough guess if you don't know the exact history. Leave at 1.0 if you're
-            filling in "Recent transfers" below — that already covers this precisely.
+            A rough guess is fine — this carries real weight in the model even when
+            you also fill in "Recent transfers" below, so it's worth setting either way.
           </p>
         </div>
         <div className="field">

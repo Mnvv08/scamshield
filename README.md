@@ -166,21 +166,24 @@ the last 3 are derived server-side from an optional `recent_payee_txns` list
 several transactions, like many small transfers to one payee, that a single transaction
 looked at in isolation can't reveal.
 
-| Feature | Source | Notes |
+| Feature | Source | Random Forest importance |
 |---|---|---|
-| `hour` | request | 0–23 |
-| `is_weekend` | request | Weak signal in practice — see feature importances below |
-| `amount` | request | ₹, capped at 1 crore server-side |
-| `is_new_payee` | request | |
-| `txns_last_hour` | request | |
-| `device_changed_recently` | request | |
-| `payee_risk_score` | request | 0–1 |
-| `time_since_last_txn_min` | request | Strongest single predictor (0.24 importance) |
-| `amount_to_avg_ratio` | request | The caller's own estimate — a rough fallback when no payee history is supplied |
-| `recent_failed_attempts` | request | Failed PIN/OTP attempts |
-| `payee_txn_count_24h` | derived from `recent_payee_txns` | |
-| `payee_total_24h` | derived from `recent_payee_txns` | |
-| `amount_to_payee_avg_ratio` | derived from `recent_payee_txns` | Supersedes `amount_to_avg_ratio` in practice once real history is supplied |
+| `time_since_last_txn_min` | request | 0.239 — strongest single predictor |
+| `payee_total_24h` | derived from `recent_payee_txns` | 0.206 — the most useful derived signal |
+| `txns_last_hour` | request | 0.195 |
+| `payee_risk_score` | request | 0.116 |
+| `amount` | request | 0.076 |
+| `amount_to_avg_ratio` | request | 0.068 — the caller's own estimate |
+| `payee_txn_count_24h` | derived from `recent_payee_txns` | 0.060 |
+| `hour` | request | 0.016 |
+| `recent_failed_attempts` | request | 0.012 |
+| `amount_to_payee_avg_ratio` | derived from `recent_payee_txns` | 0.006 — weaker than the manual `amount_to_avg_ratio` above it, despite being the "precise" computed version; measured, not assumed |
+| `is_new_payee` | request | 0.004 |
+| `device_changed_recently` | request | 0.003 |
+| `is_weekend` | request | 0.0001 — negligible, a candidate for dropping |
+
+Importances measured directly from the deployed Random Forest
+(`model.feature_importances_`), not estimated.
 
 ## Model performance (on held-out test data)
 
