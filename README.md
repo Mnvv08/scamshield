@@ -151,6 +151,7 @@ Open `http://localhost:5173`.
 
 | Endpoint | Method | Purpose |
 |---|---|---|
+| `/health` | GET | Actually loads every model artifact and returns 503 if any fail - used as Render's deploy health check, not just "is the process up" |
 | `/predict/message` | POST | Score a text message (`{"text": "..."}`) |
 | `/predict/transaction` | POST | Score a transaction pattern |
 | `/predict/upi-request` | POST | Score a UPI collect/payment request |
