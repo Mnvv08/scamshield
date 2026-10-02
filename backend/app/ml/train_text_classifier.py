@@ -111,8 +111,13 @@ def build_augmented_dataset(base_df):
 # ---------------------------------------------------------------------------
 def clean_text(text: str) -> str:
     text = str(text).lower()
-    text = re.sub(r"http\S+|www\S+", " URLTOKEN ", text)
-    text = re.sub(r"\b\d{10}\b", " PHONETOKEN ", text)
+    # Placeholder tokens must be lowercase: the [^a-z] filter below runs after
+    # this and would otherwise delete them, silently removing the signal.
+    text = re.sub(r"http\S+|www\S+", " urltoken ", text)
+    # Bare domains with no scheme ("sbi-kyc.in", "indiapost-track.co") are the
+    # common form in Indian scam SMS and were previously split into plain words.
+    text = re.sub(r"\b[a-z0-9-]+\.(?:in|com|co|xyz|top|tk|info|net|org|link|site|online)\b\S*", " urltoken ", text)
+    text = re.sub(r"\b\d{10}\b", " phonetoken ", text)
     text = re.sub(r"[^a-z\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
