@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import jsQR from 'jsqr';
+import { imageSize, loadImageFile } from '../lib/image';
 
 // Decoding happens here in the browser: the photo never leaves the phone,
 // only the decoded text is sent to the API.
@@ -8,30 +9,18 @@ import jsQR from 'jsqr';
 // camera photo, so it tries a few sizes before giving up.
 const TRY_SIDES = [1600, 1000, 2400];
 
-function loadImage(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve({ img, url });
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('That file could not be opened as an image.'));
-    };
-    img.src = url;
-  });
-}
-
 async function decodeQrFromFile(file) {
-  const { img, url } = await loadImage(file);
+  const img = await loadImageFile(file);
+  const { width, height } = imageSize(img);
+  const longest = Math.max(width, height);
+  const sides = [...new Set(TRY_SIDES.map((s) => Math.min(s, longest)))];
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   try {
-    const longest = Math.max(img.naturalWidth, img.naturalHeight);
-    const sides = [...new Set(TRY_SIDES.map((s) => Math.min(s, longest)))];
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     for (const side of sides) {
       const scale = side / longest;
-      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
@@ -39,7 +28,7 @@ async function decodeQrFromFile(file) {
     }
     return null;
   } finally {
-    URL.revokeObjectURL(url);
+    img.close?.(); // ImageBitmap holds decoded pixels until closed
   }
 }
 

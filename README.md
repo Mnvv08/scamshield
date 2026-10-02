@@ -93,6 +93,8 @@ curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
   a pure ML score isn't.
 - **QR code checker**: decodes a UPI QR from a photo or screenshot and shows who the
   money actually goes to. See "QR code checks" below.
+- **Screenshot reader**: reads the text out of an SMS or WhatsApp screenshot (English
+  and Hindi) and runs it through the message classifier. See "Screenshot reading" below.
 
 ## Project structure
 
@@ -189,6 +191,33 @@ was tested on real images: a plain QR, a small QR inside a full-size phone scree
 a rotated and blurred 12-megapixel camera photo, a Bharat QR merchant code, and an image
 with no QR in it. These are rules, not a trained model - there is no public dataset of
 scam QR codes to train or evaluate one on.
+
+### Screenshot reading
+
+Scams are often forwarded as screenshots, and copying text out of an image is fiddly on
+a phone. The Message tab can read a screenshot instead: the text is extracted with
+[tesseract.js](https://github.com/naptha/tesseract.js) (English + Hindi), placed in the
+message box for the user to check and correct, then scored by the same classifier.
+
+- **On-device.** OCR runs in the browser. The engine and language data are served from
+  the site itself (copied from `node_modules` at build time by
+  `frontend/scripts/copy-ocr-assets.mjs`, not committed), never from a CDN, so no third
+  party sees that a screenshot was scanned. They load only on first use (~8 MB, then
+  cached).
+- **Chat-aware cleanup.** Dark-mode screenshots are inverted before OCR, since
+  Tesseract reads dark-on-light far better. Afterwards, clock times, read ticks (which
+  OCR as "vv"), "Today/Yesterday" labels and status-bar debris are removed, and links
+  that wrapped at a hyphen inside a chat bubble are re-joined
+  (`frontend/src/lib/ocrText.js`, tested by `npm test`).
+- **Measured, not assumed.** On rendered test screenshots (light-mode English WhatsApp,
+  dark-mode Hinglish WhatsApp, a Devanagari SMS and a genuine bank alert), the risk
+  score from the screenshot matched the score from typing the message exactly, to
+  within 0.01. Reading from a screenshot adds no error on clean screenshots; blurry
+  photos of screens will do worse, which is why the extracted text is shown for
+  checking before the scan.
+
+The site's Content-Security-Policy allows `'wasm-unsafe-eval'` for this: it permits
+compiling WebAssembly only, while JavaScript `eval` stays blocked.
 
 ### Transaction model inputs
 

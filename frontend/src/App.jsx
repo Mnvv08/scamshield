@@ -216,7 +216,7 @@ export default function App() {
                 {activeTab === 'qr' && 'Check a QR code before you pay'}
               </h1>
               <p className="panel-subtitle">
-                {activeTab === 'message' && 'Paste any suspicious SMS, WhatsApp, or email text to check for scam patterns.'}
+                {activeTab === 'message' && 'Paste, speak, or screenshot any suspicious SMS, WhatsApp, or email message to check it for scam patterns.'}
                 {activeTab === 'transaction' && 'Enter transaction details to check against known fraud behaviour patterns.'}
                 {activeTab === 'upi' && 'Check a payment request before approving it.'}
                 {activeTab === 'qr' && 'See who a UPI QR code really pays, and whether it matches what you were told.'}

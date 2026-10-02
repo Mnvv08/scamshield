@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { readScreenshot } from '../lib/ocr';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 const SAMPLES = [
@@ -13,6 +14,42 @@ export default function MessageForm({ onSubmit, loading }) {
   const [lastCaptured, setLastCaptured] = useState('');
 
   const MAX_MESSAGE_LENGTH = 2000;
+
+  // Screenshot reading: null when idle, otherwise { label, pct } while working.
+  const [ocrProgress, setOcrProgress] = useState(null);
+  const [ocrNote, setOcrNote] = useState(null); // { kind: 'ok' | 'warn' | 'error', text }
+  const fileInput = useRef(null);
+  const textareaRef = useRef(null);
+
+  const handleScreenshot = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (listening) stop();
+    setOcrNote(null);
+    setOcrProgress({ label: 'Starting the text reader', pct: 0 });
+    try {
+      const { text: found, confidence } = await readScreenshot(file, (m) => {
+        const label = m.status === 'recognizing text'
+          ? 'Reading the screenshot'
+          : 'Loading the text reader (first time only, about 8 MB)';
+        setOcrProgress({ label, pct: Math.round((m.progress || 0) * 100) });
+      });
+      if (!found) {
+        setOcrNote({ kind: 'error', text: 'No readable text found in that image. Try a clearer screenshot, or type the message instead.' });
+        return;
+      }
+      setText(found);
+      setOcrNote(confidence < 60
+        ? { kind: 'warn', text: 'Some of the text was hard to read. Check it against the screenshot and fix any mistakes before checking.' }
+        : { kind: 'ok', text: 'Text read from the screenshot. Check it matches, then run the check.' });
+      textareaRef.current?.focus();
+    } catch {
+      setOcrNote({ kind: 'error', text: "The text reader couldn't load. Check your connection and try again." });
+    } finally {
+      setOcrProgress(null);
+    }
+  };
 
   const handleSpeechResult = useCallback((transcript) => {
     setText((prev) => {
@@ -45,6 +82,29 @@ export default function MessageForm({ onSubmit, loading }) {
         <label className="field-label" htmlFor="msg">
           Paste a message, SMS, or WhatsApp text
         </label>
+        <div className="input-tools">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={handleScreenshot}
+        />
+        <button
+          type="button"
+          className="mic-btn"
+          onClick={() => fileInput.current?.click()}
+          disabled={loading || Boolean(ocrProgress)}
+          title="Read the text from a screenshot of an SMS or WhatsApp message"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="6" y="2.5" width="12" height="19" rx="2" stroke="currentColor" strokeWidth="2" />
+            <path d="M9.5 8h5M9.5 11.5h5M9.5 15h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          {ocrProgress ? 'Reading…' : 'Screenshot'}
+        </button>
         {supported && (
           <button
             type="button"
@@ -64,16 +124,34 @@ export default function MessageForm({ onSubmit, loading }) {
             {listening ? 'Listening…' : 'Speak'}
           </button>
         )}
+        </div>
       </div>
       {speechError && <p className="mic-error" role="alert">{speechError}</p>}
+      {ocrProgress && (
+        <div className="ocr-progress" role="status">
+          <span>{ocrProgress.label}{ocrProgress.pct ? ` · ${ocrProgress.pct}%` : '…'}</span>
+          <span className="ocr-progress-bar" aria-hidden="true">
+            <span style={{ width: `${ocrProgress.pct}%` }} />
+          </span>
+        </div>
+      )}
+      {ocrNote && !ocrProgress && (
+        <p className={`ocr-note ocr-note--${ocrNote.kind}`} role={ocrNote.kind === 'error' ? 'alert' : 'status'}>
+          {ocrNote.text}
+        </p>
+      )}
       <textarea
         id="msg"
+        ref={textareaRef}
         className="textarea"
         rows={6}
         maxLength={2000}
         placeholder="e.g. Your KYC has expired, click here to verify..."
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (ocrNote?.kind === 'ok') setOcrNote(null);
+        }}
         aria-describedby="msg-char-count"
       />
       {text.length > 1500 && (

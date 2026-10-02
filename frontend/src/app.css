@@ -1360,3 +1360,50 @@ button:focus-visible {
     grid-column: span 2;
   }
 }
+
+/* ---------------------------------------------------------------
+   Screenshot reading (Message tab)
+   --------------------------------------------------------------- */
+
+.input-tools {
+  display: flex;
+  gap: 6px;
+}
+
+/* With two buttons beside it the label gets squeezed on phones, so the
+   buttons drop below it as one row. */
+.field-label-row {
+  flex-wrap: wrap;
+}
+
+.ocr-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ocr-progress-bar {
+  display: block;
+  height: 3px;
+  background: var(--border-hairline-soft);
+  overflow: hidden;
+}
+
+.ocr-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--signal-medium);
+  transition: width 0.2s ease;
+}
+
+.ocr-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ocr-note--ok { color: var(--signal-safe); }
+.ocr-note--warn { color: var(--signal-medium); }
+.ocr-note--error { color: var(--signal-high); }
