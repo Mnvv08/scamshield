@@ -1,8 +1,8 @@
 const STATS = [
   { value: '98%', label: 'accuracy on held-out SMS test set' },
-  { value: '3', label: 'input types covered' },
+  { value: '4', label: 'input types covered' },
   { value: '6,840', label: 'real, deduplicated training messages' },
-  { value: '2 real', label: 'public datasets, no scraped/synthetic text data' },
+  { value: '2 real', label: 'public SMS datasets, plus hand-written Indian messages' },
 ];
 
 export default function Hero() {
@@ -20,12 +20,12 @@ export default function Hero() {
       <div className="hero-content">
         <span className="hero-eyebrow">UPI fraud detection, built as an internship project</span>
         <h1 className="hero-title">
-          Screens SMS, UPI requests, and payment patterns for fraud signals.
+          Screens SMS, UPI requests, QR codes, and payment patterns for fraud signals.
         </h1>
         <p className="hero-subtitle">
-          A fine-tuned text classifier runs next to a hand-written rule engine, and their
-          scores get merged into one risk read. Trained on two real public SMS datasets
-          plus UPI-scam phrasing documented from real reports.
+          A text classifier runs next to a hand-written rule engine, and their scores get
+          merged into one risk read. Trained on two real public SMS datasets plus
+          hand-written Hindi, Hinglish and Indian-alert messages based on real scam reports.
         </p>
 
         <div className="hero-stats">

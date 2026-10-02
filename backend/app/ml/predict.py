@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 from pathlib import Path
 from .rules import score_message_rules, score_upi_request_rules
+from .upi_qr import explain_upi_qr, parse_upi_qr, score_upi_qr
 from .train_text_classifier import clean_text
 
 MODEL_DIR = Path(__file__).parent.parent / "models"
@@ -172,3 +173,17 @@ def _explain_upi_request(triggered_rules):
         return "No known scam patterns detected in this request."
     parts = [labels[r] for r in triggered_rules if r in labels]
     return "Flagged because " + "; ".join(parts) + "."
+
+
+def predict_upi_qr(raw: str, expecting_to_receive: bool = False) -> dict:
+    parsed = parse_upi_qr(raw)
+    rules = score_upi_qr(parsed, expecting_to_receive)
+    risk = rules["rule_boost"]
+    qr = {k: parsed.get(k) for k in ("kind", "payee_vpa", "payee_name", "amount", "note", "currency", "is_mandate")}
+    return {
+        "risk_score": round(risk, 3),
+        "risk_level": _risk_bucket(risk),
+        "triggered_rules": rules["triggered_rules"],
+        "explanation": explain_upi_qr(rules["triggered_rules"], parsed),
+        "qr": qr,
+    }

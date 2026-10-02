@@ -3,8 +3,9 @@ import Hero from './components/Hero';
 import MessageForm from './components/MessageForm';
 import TransactionForm from './components/TransactionForm';
 import UpiRequestForm from './components/UpiRequestForm';
+import QrForm from './components/QrForm';
 import ResultPanel from './components/ResultPanel';
-import { checkMessage, checkTransaction, checkUpiRequest, pingHealth } from './api';
+import { checkMessage, checkTransaction, checkUpiRequest, checkUpiQr, pingHealth } from './api';
 import './app.css';
 import ChatAssistant from './components/ChatAssistant';
 
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'message', label: 'Message', desc: 'SMS / WhatsApp text' },
   { id: 'transaction', label: 'Transaction', desc: 'Payment pattern' },
   { id: 'upi', label: 'UPI request', desc: 'Collect request' },
+  { id: 'qr', label: 'QR code', desc: 'Before you scan to pay' },
   { id: 'assistant', label: 'Assistant', desc: 'Ask about scams' },
 ];
 
@@ -211,11 +213,13 @@ export default function App() {
                 {activeTab === 'message' && 'Check a message'}
                 {activeTab === 'transaction' && 'Check a transaction pattern'}
                 {activeTab === 'upi' && 'Check a UPI collect request'}
+                {activeTab === 'qr' && 'Check a QR code before you pay'}
               </h1>
               <p className="panel-subtitle">
                 {activeTab === 'message' && 'Paste any suspicious SMS, WhatsApp, or email text to check for scam patterns.'}
                 {activeTab === 'transaction' && 'Enter transaction details to check against known fraud behaviour patterns.'}
                 {activeTab === 'upi' && 'Check a payment request before approving it.'}
+                {activeTab === 'qr' && 'See who a UPI QR code really pays, and whether it matches what you were told.'}
               </p>
 
               {activeTab === 'message' && (
@@ -226,6 +230,9 @@ export default function App() {
               )}
               {activeTab === 'upi' && (
                 <UpiRequestForm loading={loading} onSubmit={(payload) => runCheck(() => checkUpiRequest(payload), 'UPI request check')} />
+              )}
+              {activeTab === 'qr' && (
+                <QrForm loading={loading} onSubmit={(payload) => runCheck(() => checkUpiQr(payload), 'QR code check')} />
               )}
 
               {history.length > 0 && (
@@ -290,11 +297,11 @@ export default function App() {
       <footer className="footer">
         <p>
           Text classifier trained on 6,840 real, deduplicated messages from two public
-          datasets plus documented UPI-scam phrasing (95% cross-validated F1). Transaction
-          risk uses an Isolation Forest and a Random Forest over synthetic data — no real
-          bank or UPI transaction data exists publicly, or was used here — with sequence
-          features that also catch patterns spread across several transactions, not just
-          one at a time.
+          datasets plus hand-written Indian messages (96% F1 on a held-out test split).
+          Transaction risk uses an Isolation Forest over synthetic data — no real bank or
+          UPI transaction data exists publicly, or was used here — with sequence features
+          that also catch patterns spread across several transactions, not just one at a
+          time. QR codes are decoded on your device; only the decoded text is checked.
         </p>
       </footer>
     </div>

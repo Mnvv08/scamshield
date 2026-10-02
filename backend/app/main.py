@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from app.ml.predict import predict_message, predict_transaction, predict_upi_request, check_models_loadable
+from app.ml.predict import predict_message, predict_transaction, predict_upi_request, predict_upi_qr, check_models_loadable
 
 load_dotenv()
 
@@ -118,6 +118,15 @@ class UpiRequestPayload(BaseModel):
     note: Optional[str] = ""
 
 
+class UpiQrRequest(BaseModel):
+    # The decoded text of the QR code. Decoding happens in the browser, so the
+    # image itself never leaves the user's phone.
+    raw: str = Field(..., min_length=1, max_length=2000)
+    # What the person was told the QR is for. "Scan this to receive money" is
+    # the core of the commonest QR scam, and it is invisible in the QR itself.
+    expecting_to_receive: bool = False
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -163,6 +172,15 @@ def predict_transaction_endpoint(request: Request, req: TransactionRequest):
 def predict_upi_request_endpoint(request: Request, req: UpiRequestPayload):
     try:
         return predict_upi_request(req.model_dump())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/predict/upi-qr")
+@limiter.limit("30/minute")
+def predict_upi_qr_endpoint(request: Request, req: UpiQrRequest):
+    try:
+        return predict_upi_qr(req.raw, req.expecting_to_receive)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

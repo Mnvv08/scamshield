@@ -91,6 +91,8 @@ curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
   collect-request red flags) that combine with the ML score. Real fraud systems are
   hybrid for a reason — rules catch known patterns instantly and are explainable in a way
   a pure ML score isn't.
+- **QR code checker**: decodes a UPI QR from a photo or screenshot and shows who the
+  money actually goes to. See "QR code checks" below.
 
 ## Project structure
 
@@ -106,6 +108,7 @@ scamshield/
 │   │   │   ├── evaluate_indian.py      # Hinglish/Hindi/Indian-alert evaluation
 │   │   │   ├── train_transaction_model.py
 │   │   │   ├── rules.py                # rule engine
+│   │   │   ├── upi_qr.py               # QR parsing (UPI links, Bharat QR) + rules
 │   │   │   └── predict.py              # combines ML + rules
 │   │   ├── models/                 # trained model artifacts (committed)
 │   │   └── data/                   # datasets, incl. Indian train + eval sets (committed)
@@ -159,9 +162,33 @@ Open `http://localhost:5173`.
 | `/predict/message` | POST | Score a text message (`{"text": "..."}`) |
 | `/predict/transaction` | POST | Score a transaction pattern |
 | `/predict/upi-request` | POST | Score a UPI collect/payment request |
+| `/predict/upi-qr` | POST | Score a decoded UPI QR code (`{"raw": "upi://pay?...", "expecting_to_receive": false}`) |
 
 Each returns a `risk_score` (0–1), `risk_level` (`low`/`medium`/`high`), and a plain-language
 `explanation`.
+
+### QR code checks
+
+The commonest QR scam needs no clever QR at all. A fake buyer on OLX, or a fake
+"refund desk", sends an ordinary payment QR and says *scan this to receive your money*.
+Scanning a UPI QR and entering your PIN always **sends** money - it never receives it.
+That fact lives in what the victim was told, not in the QR, so the checker asks one
+question - "What were you told this QR is for?" - and an answer of "to receive money"
+is scored high on its own.
+
+The QR's contents add further rule-based signals: refund/cashback/prize bait in the
+payee name or UPI ID, a bank or government name attached to a personal phone-number UPI
+ID, a payment note that promises the scanner money, a token "verification" amount, an
+autopay mandate (`upi://mandate`) disguised as a payment, a non-rupee currency, a
+missing UPI ID, or a QR that is actually a link. Both UPI deep links and EMVCo / Bharat
+QR merchant codes (nested TLV) are parsed.
+
+The image is decoded in the browser with [jsQR](https://github.com/cozmo/jsQR), so the
+photo never leaves the user's phone; only the decoded text is sent to the API. Decoding
+was tested on real images: a plain QR, a small QR inside a full-size phone screenshot,
+a rotated and blurred 12-megapixel camera photo, a Bharat QR merchant code, and an image
+with no QR in it. These are rules, not a trained model - there is no public dataset of
+scam QR codes to train or evaluate one on.
 
 ### Transaction model inputs
 

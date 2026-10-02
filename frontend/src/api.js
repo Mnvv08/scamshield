@@ -62,6 +62,7 @@ async function post(path, body) {
 export const checkMessage = (text) => post('/predict/message', { text });
 export const checkTransaction = (payload) => post('/predict/transaction', payload);
 export const checkUpiRequest = (payload) => post('/predict/upi-request', payload);
+export const checkUpiQr = (payload) => post('/predict/upi-qr', payload);
 export const sendChatMessage = (messages) => post('/chat', { messages });
 
 export async function pingHealth(timeoutMs = 4000) {

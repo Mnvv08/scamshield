@@ -52,6 +52,42 @@ const ACTIONS = {
   ],
 };
 
+// A QR result needs different advice: the one fact that defeats most QR
+// scams is that scanning only ever sends money.
+const QR_ACTIONS = {
+  low: [
+    'Scanning a QR and entering your PIN always sends money. It never receives it.',
+    'Before entering your PIN, check that the name your UPI app shows is who you meant to pay.',
+  ],
+  medium: [
+    'Check the name your UPI app shows before entering your PIN.',
+    'If this sets up autopay, you can cancel mandates from your UPI app at any time.',
+    'Scanning a QR never receives money, only sends it.',
+  ],
+  high: [
+    'Do not scan or pay this QR.',
+    'No one can send you money through a QR code. Anyone who says otherwise is running a scam.',
+    'Report it at cybercrime.gov.in or call 1930.',
+  ],
+};
+
+const rupees = (n) => `\u20b9${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+function QrPayee({ qr }) {
+  if (qr.kind === 'link') return <p className="qr-payee qr-payee--plain">This QR opens a website, not a payment.</p>;
+  if (qr.kind === 'text') return <p className="qr-payee qr-payee--plain">This QR contains plain text, not a payment.</p>;
+  return (
+    <div className="qr-payee">
+      <span className="qr-payee-label">{qr.is_mandate ? 'Sets up autopay to' : 'Your money goes to'}</span>
+      <span className="qr-payee-name">{qr.payee_name || 'No name given'}</span>
+      <span className="qr-payee-vpa mono">{qr.payee_vpa || 'no UPI ID found'}</span>
+      <span className="qr-payee-amount">
+        {qr.amount ? rupees(qr.amount) : 'Amount: you type it in'}
+      </span>
+    </div>
+  );
+}
+
 function VerdictIcon({ level }) {
   const c = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true };
   if (level === 'low') {
@@ -162,7 +198,8 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
   // parse the prose into the same chip shape when the array isn't present.
   const rules = result.triggered_rules || parseReasonsFromExplanation(result.explanation);
   const verdict = VERDICT[level] || VERDICT.low;
-  const actions = ACTIONS[level] || ACTIONS.low;
+  const actionSet = result.qr ? QR_ACTIONS : ACTIONS;
+  const actions = actionSet[level] || actionSet.low;
 
   // Keying on risk_score alone risked a collision: two genuinely different
   // checks can round to the identical 3-decimal score (e.g. both landing on
@@ -178,6 +215,8 @@ export default function ResultPanel({ result, error, checkedLabel, loading }) {
       </div>
 
       <RiskGauge score={result.risk_score} level={level} />
+
+      {result.qr && <QrPayee qr={result.qr} />}
 
       <div className="verdict">
         <div className="verdict-title">
