@@ -99,6 +99,23 @@ LEGIT_TRANSACTIONAL_SAMPLES = [
     "Your salary of Rs 45000 has been credited to your account ending 4521",
 ]
 
+def load_indian_training_set():
+    """
+    Hand-written Indian-context training messages (app/data/indian_train_set.csv):
+    Hinglish and Hindi scams, plus the bank/UPI/OTP alerts and personal chats the
+    public datasets contain none of. Written to match documented scam typologies
+    and real alert formats; not real user messages.
+
+    These are added to the TRAINING split only (see main), so the held-out test
+    split used by evaluate.py stays identical and before/after numbers compare.
+    They are deliberately separate from indian_eval_set.csv - never merge the two.
+    """
+    path = DATA_DIR / "indian_train_set.csv"
+    if not path.exists():
+        return None
+    return pd.read_csv(path, encoding="utf-8")[["label", "text"]]
+
+
 def build_augmented_dataset(base_df):
     rows = [(1, t) for t in UPI_SCAM_SAMPLES] + [(0, t) for t in LEGIT_TRANSACTIONAL_SAMPLES]
     aug_df = pd.DataFrame(rows, columns=["label", "text"])
@@ -109,6 +126,12 @@ def build_augmented_dataset(base_df):
 # ---------------------------------------------------------------------------
 # 3. Feature engineering: TF-IDF on cleaned text
 # ---------------------------------------------------------------------------
+# sklearn's default token pattern (\w\w+) does not treat Devanagari vowel signs
+# as word characters, so it splits Hindi words into fragments ("बिजली" -> "जल").
+# This pattern keeps whole Devanagari words together.
+TOKEN_PATTERN = r"(?u)[\w\u0900-\u0963\u0966-\u097f]{2,}"
+
+
 def clean_text(text: str) -> str:
     text = str(text).lower()
     # Placeholder tokens must be lowercase: the [^a-z] filter below runs after
@@ -118,7 +141,9 @@ def clean_text(text: str) -> str:
     # common form in Indian scam SMS and were previously split into plain words.
     text = re.sub(r"\b[a-z0-9-]+\.(?:in|com|co|xyz|top|tk|info|net|org|link|site|online)\b\S*", " urltoken ", text)
     text = re.sub(r"\b\d{10}\b", " phonetoken ", text)
-    text = re.sub(r"[^a-z\s]", " ", text)
+    # Keep Devanagari (U+0900-U+097F) so Hindi messages are not reduced to an
+    # empty string; the danda punctuation marks (U+0964-U+0965) are dropped.
+    text = re.sub(r"[^a-z\u0900-\u0963\u0966-\u097f\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
@@ -144,7 +169,14 @@ def main():
         df["clean_text"], df["label"], test_size=0.2, random_state=42, stratify=df["label"]
     )
 
-    vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2), min_df=2)
+    indian = load_indian_training_set()
+    if indian is not None:
+        print(f"  adding {len(indian)} Indian-context messages to the training split only")
+        X_train = pd.concat([X_train, indian["text"].apply(clean_text)], ignore_index=True)
+        y_train = pd.concat([y_train, indian["label"]], ignore_index=True)
+
+    vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2), min_df=2,
+                                 token_pattern=TOKEN_PATTERN)
     X_train_vec = vectorizer.fit_transform(X_train)
     X_test_vec = vectorizer.transform(X_test)
 

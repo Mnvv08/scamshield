@@ -32,9 +32,28 @@ URGENCY_PHRASES = [
 ]
 
 CREDENTIAL_REQUEST_PHRASES = [
-    "upi pin", "otp", "cvv", "card number", "share the code",
+    "upi pin", "cvv", "card number", "share the code",
     "install anydesk", "install teamviewer", "screen share",
 ]
+
+# "otp" alone used to be in the list above, which flagged every genuine OTP
+# message ("Your OTP is 4821. Do not share it") - the most common legitimate SMS
+# in India. Mentioning an OTP is normal; ASKING someone to hand theirs over is
+# the scam. So OTP only counts when a request verb sits next to it, after
+# negated warnings ("do not share", "never share", "share na karein") are removed.
+_NEGATED_SHARE = re.compile(
+    r"\b(?:do not|don'?t|never|not)\s+(?:share|disclose|tell|give)\b"
+    r"|\bshare\s+(?:na|mat)\b"
+)
+_OTP_REQUEST = re.compile(
+    r"\b(?:share|tell|send|give|forward|provide|enter|bata\w*|bhej\w*|de\s+do)\b"
+    r"[^.!?\n]{0,25}\b(?:otp|code)\b"
+    r"|\b(?:otp|code)\b[^.!?\n]{0,25}\b(?:share|bata\w*|bhej\w*|forward|de\s+do)\b"
+)
+
+
+def _asks_for_otp(text_l: str) -> bool:
+    return bool(_OTP_REQUEST.search(_NEGATED_SHARE.sub(" ", text_l)))
 
 AUTHORITY_IMPERSONATION_PHRASES = [
     "rbi officer", "income tax", "customs", "police case",
@@ -47,7 +66,8 @@ def score_message_rules(text: str) -> dict:
     hits = {
         "suspicious_url": any(re.search(p, text_l) for p in SUSPICIOUS_URL_PATTERNS),
         "urgency_language": any(p in text_l for p in URGENCY_PHRASES),
-        "credential_request": any(p in text_l for p in CREDENTIAL_REQUEST_PHRASES),
+        "credential_request": (any(p in text_l for p in CREDENTIAL_REQUEST_PHRASES)
+                               or _asks_for_otp(text_l)),
         "authority_impersonation": any(p in text_l for p in AUTHORITY_IMPERSONATION_PHRASES),
     }
     triggered = [k for k, v in hits.items() if v]
@@ -78,7 +98,7 @@ def score_upi_request_rules(payload: dict) -> dict:
         boost += 0.2
 
     note = str(payload.get("note", "")).lower()
-    if any(p in note for p in URGENCY_PHRASES + CREDENTIAL_REQUEST_PHRASES):
+    if any(p in note for p in URGENCY_PHRASES + CREDENTIAL_REQUEST_PHRASES) or _asks_for_otp(note):
         flags.append("suspicious_note_text")
         boost += 0.15
 

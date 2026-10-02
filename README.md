@@ -63,16 +63,18 @@ curl -X POST https://scamshield-9ksh.onrender.com/predict/message \
                       └──────────────────────────────────────────┘
 ```
 
-- **Message classifier**: combined word (1-2 gram) + character (3-5 gram) TF-IDF features
-  feeding a linear SVM (calibrated for probabilities), selected via 5-fold cross-validated
-  comparison against Logistic Regression and Complement Naive Bayes. Trained on 6,840
+- **Message classifier**: word (1-2 gram) TF-IDF features feeding a Logistic Regression
+  (class-balanced). Hindi (Devanagari) text is kept and tokenised as whole words, so
+  Hindi messages are actually read rather than reduced to an empty string. Trained on 6,840
   real, deduplicated messages from two public sources — the
   [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection)
   (5,572 messages) and a
   [combined smishing research dataset](https://github.com/shaghayegh-hp/Smishing_Dataset)
   (a compilation of 5 public phishing-SMS sources, sampled here) — plus a small
   hand-curated set of UPI-scam phrasing patterns (fake KYC, fake refunds, "collect
-  request" tricks) based on publicly documented RBI/CERT-In scam advisories.
+  request" tricks) based on publicly documented RBI/CERT-In scam advisories, plus 111
+  hand-written Indian-context messages (Hinglish and Hindi scams, and the bank/UPI/OTP
+  alerts the public datasets contain none of), added to the training split only.
 - **Transaction risk model**: two models over the same features — an unsupervised
   Isolation Forest, which catches statistically unusual transactions without needing
   labels, and a supervised Random Forest, which learns the labelled fraud patterns and
@@ -100,11 +102,13 @@ scamshield/
 │   │   ├── ml/
 │   │   │   ├── download_dataset.py     # fetches the real base dataset
 │   │   │   ├── train_text_classifier.py
+│   │   │   ├── evaluate.py             # rule-layer + threshold evaluation
+│   │   │   ├── evaluate_indian.py      # Hinglish/Hindi/Indian-alert evaluation
 │   │   │   ├── train_transaction_model.py
 │   │   │   ├── rules.py                # rule engine
 │   │   │   └── predict.py              # combines ML + rules
-│   │   ├── models/                 # trained model artifacts (generated, gitignored)
-│   │   └── data/                   # datasets (generated/downloaded, gitignored)
+│   │   ├── models/                 # trained model artifacts (committed)
+│   │   └── data/                   # datasets, incl. Indian train + eval sets (committed)
 │   └── requirements.txt
 └── frontend/
     ├── src/
@@ -188,11 +192,11 @@ Importances measured directly from the deployed Random Forest
 
 ## Model performance (on held-out test data)
 
-- **Text classifier**: 98% accuracy, 95% F1 on the scam class, 95% mean 5-fold CV F1
-  on a held-out 20% test split. Trained on 6,840 deduplicated messages drawn from two
-  real public datasets (11,543 before deduplication) plus the curated UPI-scam patterns,
-  with the model chosen by 5-fold cross-validated comparison of three model types rather
-  than picked by default.
+- **Text classifier**: 98.5% accuracy and 0.963 F1 on the scam class on a held-out 20%
+  test split of 1,368 messages. Trained on 6,840 deduplicated messages drawn from two
+  real public datasets (11,543 before deduplication) plus the curated UPI-scam patterns
+  and the Indian training set. These numbers say little about Indian users, since the
+  test split is mostly English spam - see "How does it do on Indian messages?" below.
 - **Transaction model**: on a held-out split of the synthetic data, the Isolation
   Forest scores 0.79 F1 on the fraud class (0.98 precision, 0.67 recall) and the Random
   Forest scores 1.00. **The Random Forest's perfect score is a warning, not a result:**
@@ -217,9 +221,9 @@ Held-out test set: 1,368 messages, 287 scam.
 
 | Variant | Precision | Recall | F1 | F2 | Missed scams | False alarms |
 |---|---|---|---|---|---|---|
-| ML only (0.50) | 0.952 | 0.958 | **0.955** | 0.957 | 12 | 14 |
+| ML only (0.50) | 0.965 | 0.962 | **0.963** | 0.962 | 11 | 10 |
 | Rules only | 0.846 | 0.115 | 0.202 | 0.139 | 254 | 6 |
-| Hybrid, deployed (0.35) | 0.929 | 0.962 | 0.945 | 0.955 | **11** | 21 |
+| Hybrid, deployed (0.35) | 0.949 | 0.969 | 0.959 | 0.965 | **9** | 15 |
 
 **The hybrid scores slightly lower on F1 than the classifier alone.** That is worth
 stating plainly rather than hiding: adding rules did not make the model more accurate
@@ -227,8 +231,8 @@ by that measure.
 
 F1 is the wrong objective here, though. A missed scam can cost someone their savings;
 a false alarm costs them a few seconds. F1 weights those equally. Weighting a missed
-scam at 10x a false alarm, the hybrid comes out slightly ahead (131 vs 134) because it
-catches one more scam for seven more false alarms.
+scam at 10x a false alarm, the hybrid comes out ahead (105 vs 120) because it
+catches two more scams for five more false alarms.
 
 The rules-only row is the more interesting one: precision 0.846 at recall 0.115. The
 rules fire rarely, but they are usually right when they do — which is exactly what a
@@ -239,10 +243,10 @@ rule layer should be. Their real contribution is not accuracy but the
 
 | Threshold | Precision | Recall | F1 | Missed | False alarms | Cost* |
 |---|---|---|---|---|---|---|
-| 0.30 | 0.891 | 0.969 | 0.928 | 9 | 34 | **124** |
-| 0.35 (deployed) | 0.929 | 0.962 | 0.945 | 11 | 21 | 131 |
-| 0.40 | 0.968 | 0.958 | **0.963** | 12 | 9 | 129 |
-| 0.70 | 1.000 | 0.631 | 0.774 | 106 | 0 | 1060 |
+| 0.30 | 0.912 | 0.976 | 0.943 | 7 | 27 | **97** |
+| 0.35 (deployed) | 0.949 | 0.969 | 0.959 | 9 | 15 | 105 |
+| 0.40 | 0.969 | 0.965 | **0.967** | 10 | 9 | 109 |
+| 0.70 | 0.995 | 0.669 | 0.800 | 95 | 1 | 951 |
 
 \* cost = missed scams x 10 + false alarms
 
@@ -250,6 +254,50 @@ The deployed threshold of 0.35 is not cost-optimal: 0.30 is cheaper under this
 assumption. The gap is small, and the 10x multiplier is a judgement call rather than a
 measured figure, so the threshold is left where it is and the trade-off is documented
 here instead of being buried in a constant.
+
+## How does it do on Indian messages?
+
+The held-out test split above is drawn from the same sources as training - mostly
+English SMS spam from 2011. Scoring well there says little about what ScamShield's users
+actually receive: Hinglish and Hindi scams, and a daily stream of legitimate bank, UPI
+and OTP alerts. So it is measured separately on an 82-message Indian evaluation set
+(`app/data/indian_eval_set.csv`). Reproduce with `python app/ml/evaluate_indian.py -v`.
+
+Measured on that set at the deployed 0.35 threshold:
+
+| | Before | After |
+|---|---|---|
+| Hinglish scams caught | 65% | **100%** |
+| Hindi scams caught | 10% | **100%** |
+| Indian-English scams caught | 100% | 100% |
+| Bank / UPI alerts falsely flagged | 100% | 60% |
+| OTP messages falsely flagged | 88% | 25% |
+| Delivery / recharge / IRCTC / ITR falsely flagged | 62% | 62% |
+| **All scams caught** | **60%** | **100%** |
+| **All legitimate messages falsely flagged** | **52%** | **31%** |
+
+The "before" numbers had three separate causes, each fixed and measured on its own:
+
+1. `clean_text` stripped everything outside `a-z`, so every Hindi message reached the
+   model as an empty string and scored an identical 0.09. Fixing that alone changed
+   nothing, because of the next cause:
+2. sklearn's default token pattern splits Devanagari words at vowel signs ("बिजली"
+   became "जल"), and the training data contained no Hindi or Hinglish at all. Fixed with
+   a Devanagari-aware token pattern plus 111 Indian training messages. Scam recall went
+   from 60% to 100%; the main test split was unaffected (hybrid F1 0.958 to 0.959).
+3. The `credential_request` rule fired on any mention of "otp", so every genuine "Your
+   OTP is 4821, do not share it" message was flagged. It now fires only when someone is
+   asked to share or send an OTP, after negated warnings are removed. OTP false alarms
+   fell from 62% to 25%.
+
+**Caveats, stated plainly.** Both the Indian training set and the evaluation set were
+written by the same author, from the same scam typologies, so 100% recall here is
+almost certainly optimistic - real scams will use phrasings neither set contains. The
+two sets are kept strictly separate (the evaluation set is never trained on), but they
+are not independent the way real-world data would be. And 31% of legitimate Indian
+messages are still flagged: bank alerts share vocabulary ("Rs", "A/c", "call") with the
+spam the model learned from. The fix for that is more real legitimate Indian alerts in
+training, not further tuning against this evaluation set.
 
 ### How far does the transaction model actually generalize?
 
@@ -321,8 +369,10 @@ frontend rather than any origin.
 
 - The transaction model has never seen real transaction data and should not be presented
   as validated against real fraud — it's a prototype demonstrating the approach.
-- The text classifier's base data is general 2011-era SMS spam; UPI-scam coverage comes
-  from a small curated set (~24 examples), not a large labeled corpus of real UPI scams.
+- The text classifier's base data is general 2011-era SMS spam. Indian coverage comes
+  from small hand-written sets (~24 curated UPI-scam patterns plus 111 Indian training
+  messages), not a large labeled corpus of real Indian messages. Around a third of
+  legitimate Indian alerts are still flagged on the Indian evaluation set.
 - This is a portfolio/learning project, not a production fraud-detection system. Don't use
   it as the sole safeguard for real financial decisions.
 

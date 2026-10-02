@@ -151,3 +151,28 @@ class TestUpiRequestRules:
     def test_missing_keys_do_not_crash(self):
         """Defensive: the API may send partial payloads."""
         assert score_upi_request_rules({})["triggered_rules"] == []
+
+
+class TestOtpRequestVsMention:
+    """Mentioning an OTP is normal (every bank sends one); asking for it is the scam."""
+
+    @pytest.mark.parametrize("text", [
+        "Please tell me the OTP you received",
+        "Share OTP now to secure your account",
+        "bas jo OTP aaye wo bata do",
+        "verification code aaya hoga wo batao",
+        "send me the code you got",
+    ])
+    def test_flags_requests_for_otp(self, text):
+        assert "credential_request" in score_message_rules(text)["triggered_rules"]
+
+    @pytest.mark.parametrize("text", [
+        "Your OTP for login is 482913. Do not share it with anyone.",
+        "Never share your OTP with anyone",
+        "Use OTP 7391 to complete your transaction",
+        "OTP for your Swiggy order delivery is 4521. Share it with the delivery partner",
+        "Aapka OTP 662013 hai. Ise kisi ke saath share na karein.",
+        "Meet me at the footpath near gate 2",  # "otp" inside a word
+    ])
+    def test_does_not_flag_genuine_otp_messages(self, text):
+        assert "credential_request" not in score_message_rules(text)["triggered_rules"]
